@@ -1,0 +1,3472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1D4ED8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="RemindCare" />
+  <meta name="description" content="RemindCare - Fully Editable Senior Medication Management & Caregiver Companion PWA" />
+  <title>RemindCare — Fully Editable Senior Medication & Caregiver PWA</title>
+
+  <!-- Dynamic PWA Manifest Link (populated via Blob on startup for Add-to-Home-Screen support) -->
+  <link rel="manifest" id="pwa-manifest-link" />
+
+  <!-- Google Fonts: Inter for high-contrast clinical legibility -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            clinical: {
+              blue: '#1D4ED8',
+              blueDark: '#1E40AF',
+              blueLight: '#EFF6FF',
+              emerald: '#059669',
+              emeraldLight: '#ECFDF5',
+              amber: '#D97706',
+              amberLight: '#FFFBEB',
+              crimson: '#DC2626',
+              crimsonLight: '#FEF2F2',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Base accessible styling for seniors & caregivers */
+    html, body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #F1F5F9;
+      color: #0F172A;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Subtle pulse animation during active Text-to-Speech readout */
+    @keyframes gentlePulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.02); opacity: 0.92; }
+    }
+    .speaking-pulse {
+      animation: gentlePulse 1.4s infinite ease-in-out;
+    }
+
+    /* Custom clean scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-24 md:pb-10">
+
+  <!-- ==================== STICKY TOP CLINICAL HEADER ==================== -->
+  <header class="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand Identity -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-[#1D4ED8] flex items-center justify-center text-white shadow-md shrink-0" aria-hidden="true">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">RemindCare</h1>
+            <span class="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-[#059669] border border-emerald-200">
+              AUTO-SAVED
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm font-medium text-slate-500">Editable Care &amp; Medication Companion</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher + Global Settings & Backup Controls -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <!-- Segmented Mode Switcher (Desktop/Tablet) -->
+        <div class="hidden sm:flex bg-slate-100 p-1 rounded-2xl border border-slate-200" role="tablist" aria-label="Application Mode">
+          <button
+            id="top-tab-senior"
+            onclick="switchMode('senior')"
+            class="px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-[#1D4ED8] text-white shadow-sm"
+            role="tab"
+            aria-selected="true"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            Senior View
+          </button>
+          <button
+            id="top-tab-caregiver"
+            onclick="switchMode('caregiver')"
+            class="px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-700 hover:text-slate-900"
+            role="tab"
+            aria-selected="false"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+            Caregiver Dashboard
+          </button>
+        </div>
+
+        <!-- Global Profile & Settings Button -->
+        <button
+          onclick="openSettingsModal('profile')"
+          class="px-3.5 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1D4ED8] border border-blue-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all"
+          title="Edit Patient Profile, SOS Contacts, Thresholds & Voice"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Settings</span>
+        </button>
+
+        <!-- Data Backup & Restore Shortcut -->
+        <button
+          onclick="openSettingsModal('backup')"
+          class="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all"
+          title="Backup, Restore, or Install PWA"
+        >
+          <svg class="w-4 h-4 text-blue-300 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+          </svg>
+          <span class="hidden md:inline">Backup / PWA</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 pt-5 space-y-6">
+
+    <!-- ================================================================ -->
+    <!-- MODE 1: SENIOR PATIENT VIEW                                      -->
+    <!-- ================================================================ -->
+    <section id="view-senior" class="space-y-6" aria-label="Senior Patient View">
+
+      <!-- 1. Editable Patient Greeting, Clinical Badges, Live Clock & Next Dose Card -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Clickable Patient Profile Header + Live Clock + Progress Bar -->
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-5">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <!-- Clicking patient profile opens Profile & Settings Editor -->
+            <div
+              onclick="openSettingsModal('profile')"
+              class="group cursor-pointer rounded-2xl -m-2 p-2 hover:bg-blue-50/70 transition-all flex-1 min-w-[230px]"
+              role="button"
+              tabindex="0"
+              onkeydown="if(event.key==='Enter') openSettingsModal('profile')"
+              title="Click to edit Patient Name, Age, Blood Group, Allergies & Conditions"
+            >
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <span id="senior-badge-age" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#1D4ED8] border border-blue-200">
+                  AGE: 72 YRS
+                </span>
+                <span id="senior-badge-blood" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                  BLOOD: B+
+                </span>
+                <span id="senior-badge-allergy" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-[#D97706] border border-amber-200">
+                  ALLERGY: Penicillin
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 group-hover:bg-[#1D4ED8] group-hover:text-white transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+                  </svg>
+                  Edit Profile
+                </span>
+              </div>
+
+              <h2 id="senior-greeting-heading" class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
+                Namaste, Ramesh Sharma
+              </h2>
+              <p id="senior-conditions-text" class="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
+                Conditions: Type 2 Diabetes, Hypertension
+              </p>
+              <p id="senior-date-display" class="text-sm font-medium text-slate-500 mt-0.5">
+                Loading date...
+              </p>
+            </div>
+
+            <!-- High-Contrast Live Digital Clock -->
+            <div class="bg-slate-900 text-white px-4 py-3 rounded-2xl text-right shadow-sm shrink-0">
+              <div id="senior-live-clock" class="text-xl sm:text-2xl font-extrabold tracking-wide tabular-nums">
+                --:--:--
+              </div>
+              <div class="text-xs font-semibold text-blue-300 uppercase tracking-wider">
+                Local Time
+              </div>
+            </div>
+          </div>
+
+          <!-- Daily Adherence Progress Bar -->
+          <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-base sm:text-lg font-bold text-slate-800">Today's Medicine Progress</span>
+              <span id="senior-progress-label" class="text-base sm:text-lg font-extrabold text-[#1D4ED8]">
+                1 of 4 Taken (25%)
+              </span>
+            </div>
+            <div class="w-full h-4 bg-slate-200 rounded-full overflow-hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="senior-progress-bar-wrap">
+              <div
+                id="senior-progress-fill"
+                class="h-full bg-[#059669] rounded-full transition-all duration-500"
+                style="width: 25%"
+              ></div>
+            </div>
+            <p id="senior-progress-subtext" class="text-sm font-medium text-slate-600 mt-2">
+              Tap the green "I Took It" button after each dose.
+            </p>
+          </div>
+        </div>
+
+        <!-- Next Upcoming Dose Spotlight Card -->
+        <div id="next-dose-card" class="lg:col-span-5 bg-[#1D4ED8] text-white rounded-3xl p-6 shadow-md flex flex-col justify-between space-y-4">
+          <!-- Populated dynamically by renderSeniorView() -->
+        </div>
+      </div>
+
+      <!-- 2. Editable Caregiver Daily Reminder Banner -->
+      <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-start sm:items-center gap-3 flex-1 min-w-[240px]">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 text-[#D97706] flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-xs font-extrabold uppercase tracking-wider text-[#D97706]">Caregiver Daily Note</div>
+            <p id="senior-caregiver-banner-text" class="text-sm sm:text-base font-bold text-slate-800">
+              Drink 2 glasses of warm water after morning medicine. Walk 15 mins after dinner.
+            </p>
+          </div>
+        </div>
+        <button
+          onclick="openSettingsModal('profile')"
+          class="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-[#D97706] border border-amber-300 text-xs font-bold shrink-0"
+        >
+          Edit Note
+        </button>
+      </div>
+
+      <!-- 3. Voice Assistance, Emergency SOS & Senior Edit Mode Bar -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <!-- Read Schedule Aloud Button -->
+        <button
+          id="btn-read-aloud"
+          onclick="readScheduleAloud()"
+          class="min-h-[58px] px-4 py-3.5 rounded-2xl bg-[#1D4ED8] hover:bg-[#1E40AF] active:scale-[0.99] text-white font-bold text-base shadow-sm flex items-center justify-center gap-2.5 transition-all"
+        >
+          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+          </svg>
+          <span id="btn-read-aloud-text">Read Schedule Aloud</span>
+        </button>
+
+        <!-- Test Chime & Voice Alert Button -->
+        <button
+          onclick="testChimeAndVoiceAlert()"
+          class="min-h-[58px] px-4 py-3.5 rounded-2xl bg-white hover:bg-blue-50 active:scale-[0.99] text-[#1D4ED8] border-2 border-[#1D4ED8] font-bold text-base shadow-sm flex items-center justify-center gap-2.5 transition-all"
+        >
+          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+          </svg>
+          <span>Test Chime &amp; Voice</span>
+        </button>
+
+        <!-- Senior View Quick Edit Mode Toggle -->
+        <button
+          id="btn-toggle-senior-edit"
+          onclick="toggleSeniorEditMode()"
+          class="min-h-[58px] px-4 py-3.5 rounded-2xl bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-800 border-2 border-slate-300 font-bold text-base shadow-sm flex items-center justify-center gap-2.5 transition-all"
+        >
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+          </svg>
+          <span id="btn-senior-edit-label">Edit Medicines: OFF</span>
+        </button>
+
+        <!-- Emergency SOS Button -->
+        <button
+          onclick="triggerEmergencySOS()"
+          class="min-h-[58px] px-4 py-3.5 rounded-2xl bg-[#DC2626] hover:bg-red-700 active:scale-[0.99] text-white font-extrabold text-base shadow-md flex items-center justify-center gap-2.5 transition-all"
+        >
+          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <span>Emergency SOS</span>
+        </button>
+      </div>
+
+      <!-- 4. Daily Medication Schedule Grouped by Time Slot -->
+      <div id="senior-schedule-container" class="space-y-6">
+        <!-- Populated dynamically by renderSeniorView() -->
+      </div>
+
+      <!-- 5. Quick Vitals Check-In Form (BP, Sugar, Pulse & Note) -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+              <svg class="w-6 h-6 text-[#1D4ED8]" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
+              Quick Vitals Check-In
+            </h3>
+            <p class="text-sm text-slate-600 mt-0.5">
+              Log Blood Pressure, Blood Sugar, Pulse &amp; Notes with customizable clinical thresholds.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <div id="latest-vital-summary-badge" class="text-sm font-bold"></div>
+            <button
+              type="button"
+              onclick="openSettingsModal('thresholds')"
+              class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
+            >
+              Edit Target Ranges
+            </button>
+          </div>
+        </div>
+
+        <form id="vitals-form" onsubmit="handleSaveVitals(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label for="input-systolic" class="block text-sm font-bold text-slate-800 mb-1.5">
+              BP Systolic <span class="text-slate-500 font-normal">mmHg</span>
+            </label>
+            <input
+              type="number"
+              id="input-systolic"
+              min="50"
+              max="260"
+              required
+              placeholder="e.g. 124"
+              oninput="previewVitalsRange()"
+              class="w-full px-4 py-3 text-lg font-bold rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none bg-slate-50"
+            />
+          </div>
+
+          <div>
+            <label for="input-diastolic" class="block text-sm font-bold text-slate-800 mb-1.5">
+              BP Diastolic <span class="text-slate-500 font-normal">mmHg</span>
+            </label>
+            <input
+              type="number"
+              id="input-diastolic"
+              min="30"
+              max="160"
+              required
+              placeholder="e.g. 80"
+              oninput="previewVitalsRange()"
+              class="w-full px-4 py-3 text-lg font-bold rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none bg-slate-50"
+            />
+          </div>
+
+          <div>
+            <label for="input-sugar" class="block text-sm font-bold text-slate-800 mb-1.5">
+              Blood Sugar <span class="text-slate-500 font-normal">mg/dL</span>
+            </label>
+            <input
+              type="number"
+              id="input-sugar"
+              min="30"
+              max="600"
+              required
+              placeholder="e.g. 115"
+              oninput="previewVitalsRange()"
+              class="w-full px-4 py-3 text-lg font-bold rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none bg-slate-50"
+            />
+          </div>
+
+          <div>
+            <label for="input-pulse" class="block text-sm font-bold text-slate-800 mb-1.5">
+              Pulse Rate <span class="text-slate-500 font-normal">bpm</span>
+            </label>
+            <input
+              type="number"
+              id="input-pulse"
+              min="30"
+              max="220"
+              placeholder="e.g. 74"
+              class="w-full px-4 py-3 text-lg font-bold rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none bg-slate-50"
+            />
+          </div>
+
+          <div class="sm:col-span-2 lg:col-span-4">
+            <label for="input-vital-note" class="block text-sm font-bold text-slate-800 mb-1.5">
+              Optional Observation / Note
+            </label>
+            <input
+              type="text"
+              id="input-vital-note"
+              placeholder="e.g. Fasting morning reading before tea"
+              class="w-full px-4 py-3 text-base font-medium rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none bg-slate-50"
+            />
+          </div>
+
+          <!-- Live Clinical Range Preview & Submit Row -->
+          <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-4 pt-1">
+            <div id="vitals-live-preview" class="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-600">
+              <span>Enter BP &amp; Sugar readings above for instant clinical assessment.</span>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full sm:w-auto min-h-[54px] px-7 py-3.5 rounded-2xl bg-[#1D4ED8] hover:bg-[#1E40AF] active:scale-[0.99] text-white font-bold text-base sm:text-lg shadow-sm transition-all"
+            >
+              Save Vitals Reading
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- MODE 2: CAREGIVER DASHBOARD VIEW                                 -->
+    <!-- ================================================================ -->
+    <section id="view-caregiver" class="hidden space-y-6" aria-label="Caregiver Dashboard View">
+
+      <!-- 1. Editable Patient Summary Strip + Adherence & 7-Day Trend Chart -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Live Adherence Stats -->
+        <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span id="cg-caregiver-tag" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#1D4ED8] border border-blue-200">
+                CAREGIVER: ANANYA SHARMA (DAUGHTER)
+              </span>
+              <h2 id="cg-patient-heading" class="text-2xl font-extrabold text-slate-900 mt-2">
+                Ramesh Sharma
+              </h2>
+              <p id="cg-patient-subinfo" class="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
+                72 yrs • Blood: B+ • Allergy: Penicillin
+              </p>
+            </div>
+            <button
+              onclick="openSettingsModal('profile')"
+              class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-[#1D4ED8] text-xs font-bold shrink-0"
+            >
+              Edit Profile
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+              <div class="text-xs font-bold text-[#059669] uppercase">Today's Rate</div>
+              <div id="cg-adherence-pct" class="text-3xl font-extrabold text-slate-900 mt-1">25%</div>
+              <div id="cg-adherence-count" class="text-xs font-semibold text-slate-600 mt-0.5">1 of 4 doses</div>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <div class="text-xs font-bold text-[#D97706] uppercase">Low Stock Alerts</div>
+              <div id="cg-low-stock-count" class="text-3xl font-extrabold text-slate-900 mt-1">1</div>
+              <div class="text-xs font-semibold text-slate-600 mt-0.5">Below alert limit</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button
+              onclick="openMedEditorModal(null)"
+              class="flex-1 min-h-[48px] px-4 py-2.5 rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add Medicine
+            </button>
+
+            <button
+              onclick="confirmStartNewDay()"
+              class="min-h-[48px] px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-sm flex items-center justify-center gap-2 transition-all"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              Start New Day
+            </button>
+          </div>
+        </div>
+
+        <!-- Editable 7-Day Adherence Visual Bar Chart -->
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-lg sm:text-xl font-extrabold text-slate-900">7-Day Adherence Trend</h3>
+              <p class="text-xs sm:text-sm text-slate-500">Click any past day bar to edit its historical percentage</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="cg-weekly-avg" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-[#059669] border border-emerald-200">
+                7-Day Avg: 86%
+              </span>
+              <button
+                onclick="openWeeklyEditorModal()"
+                class="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
+              >
+                Edit Days
+              </button>
+            </div>
+          </div>
+
+          <div id="weekly-chart-container" class="h-44 flex items-end justify-between gap-2 sm:gap-4 pt-6 px-2 border-b border-slate-200">
+            <!-- Populated dynamically by renderCaregiverView() -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Editable Doctor & Caregiver Instructions Sticky Board -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-xl font-extrabold text-slate-900">Doctor &amp; Caregiver Instructions Board</h3>
+            <p class="text-sm text-slate-600">Create, edit, or remove care instructions, diet rules, and doctor follow-up notes.</p>
+          </div>
+          <button
+            onclick="openNoteEditorModal(null)"
+            class="px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#D97706] border border-amber-300 text-sm font-bold flex items-center gap-1.5"
+          >
+            <span>+ Add Instruction Note</span>
+          </button>
+        </div>
+
+        <div id="cg-notes-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 3. Full Prescription Manager (Add, Edit, Duplicate, Delete) -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-xl font-extrabold text-slate-900">Prescription Schedule Manager</h3>
+            <p class="text-sm text-slate-600">Every field—name, dosage, slot, exact time, instruction, pill color &amp; threshold—is editable.</p>
+          </div>
+          <button
+            onclick="openMedEditorModal(null)"
+            class="px-4 py-2.5 rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-sm font-bold flex items-center gap-1.5 shadow-sm"
+          >
+            <span>+ Add New Prescription</span>
+          </button>
+        </div>
+
+        <div id="cg-prescription-list" class="divide-y divide-slate-200">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 4. Pharmacy Inventory & Refill Manager (Inline -1 / +1 / +30 + WhatsApp Dispatch) -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-xl font-extrabold text-slate-900">Pharmacy Inventory &amp; Refill Manager</h3>
+            <p id="cg-pharmacy-subtitle" class="text-sm text-slate-600">Adjust stock counts inline or send refill order to pharmacy.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              onclick="copyPharmacyOrderList()"
+              class="px-3.5 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#D97706] border border-amber-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+              </svg>
+              <span>Copy Order</span>
+            </button>
+
+            <button
+              onclick="sendPharmacyWhatsAppOrder()"
+              class="px-3.5 py-2.5 rounded-xl bg-[#059669] hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+              <span>WhatsApp Pharmacy</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="cg-inventory-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 5. Editable Daily Dose Audit Log & Editable Vitals History Log + CSV Export -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Editable Daily Dose Audit Log -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-xl font-extrabold text-slate-900">Daily Dose Audit Log</h3>
+              <p class="text-sm text-slate-600">Edit, delete, or add manual dose entries</p>
+            </div>
+            <button
+              onclick="openAuditEditorModal(null)"
+              class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1D4ED8] border border-blue-200 text-xs sm:text-sm font-bold"
+            >
+              + Add Log Entry
+            </button>
+          </div>
+
+          <div id="cg-audit-log" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Editable Vitals History Log + CSV Export -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-xl font-extrabold text-slate-900">Vitals History Log</h3>
+              <p class="text-sm text-slate-600">Edit or delete any recorded reading</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                onclick="openSettingsModal('thresholds')"
+                class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
+              >
+                Thresholds
+              </button>
+              <button
+                onclick="downloadHealthReportCSV()"
+                class="px-3.5 py-2 rounded-xl bg-[#059669] hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="cg-vitals-log" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
+  <nav class="sm:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 shadow-lg px-3 py-2 grid grid-cols-2 gap-2" aria-label="Mobile Mode Switcher">
+    <button
+      id="bottom-tab-senior"
+      onclick="switchMode('senior')"
+      class="py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-[#1D4ED8] text-white shadow-sm"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      </svg>
+      Senior View
+    </button>
+    <button
+      id="bottom-tab-caregiver"
+      onclick="switchMode('caregiver')"
+      class="py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-slate-100 text-slate-700"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+      Caregiver
+    </button>
+  </nav>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 1: GLOBAL PROFILE, CONTACTS, THRESHOLDS & BACKUP SETTINGS MODAL  -->
+  <!-- ====================================================================== -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-6 border border-slate-200 shadow-2xl flex flex-col max-h-[92vh]">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div>
+          <h2 id="settings-modal-title" class="text-xl sm:text-2xl font-extrabold text-slate-900">RemindCare Settings &amp; Editors</h2>
+          <p class="text-xs sm:text-sm text-slate-500">All changes save automatically to your browser storage.</p>
+        </div>
+        <button onclick="closeModal('settings-modal')" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Close settings">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Sub-Navigation Tabs -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100 p-1.5 rounded-2xl my-3">
+        <button id="stab-profile" onclick="switchSettingsTab('profile')" class="py-2 px-2 rounded-xl text-xs sm:text-sm font-bold bg-[#1D4ED8] text-white">
+          Patient &amp; Voice
+        </button>
+        <button id="stab-contacts" onclick="switchSettingsTab('contacts')" class="py-2 px-2 rounded-xl text-xs sm:text-sm font-bold text-slate-700 hover:bg-white/60">
+          SOS &amp; Contacts
+        </button>
+        <button id="stab-thresholds" onclick="switchSettingsTab('thresholds')" class="py-2 px-2 rounded-xl text-xs sm:text-sm font-bold text-slate-700 hover:bg-white/60">
+          Vitals Targets
+        </button>
+        <button id="stab-backup" onclick="switchSettingsTab('backup')" class="py-2 px-2 rounded-xl text-xs sm:text-sm font-bold text-slate-700 hover:bg-white/60">
+          Backup &amp; PWA
+        </button>
+      </div>
+
+      <!-- Scrollable Tab Body -->
+      <div class="overflow-y-auto flex-1 pr-1 space-y-4">
+
+        <!-- TAB A: PATIENT PROFILE & VOICE PREFERENCES -->
+        <form id="form-settings-profile" onsubmit="saveProfileSettings(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-xs font-extrabold uppercase text-slate-600 mb-1">Greeting Prefix</label>
+              <input type="text" id="set-greeting" required class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none font-semibold" />
+            </div>
+            <div>
+              <label class="block text-xs font-extrabold uppercase text-slate-600 mb-1">Patient Full Name</label>
+              <input type="text" id="set-patient-name" required class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none font-semibold" />
+            </div>
+            <div>
+              <label class="block text-xs font-extrabold uppercase text-slate-600 mb-1">Age</label>
+              <input type="text" id="set-age" required class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none font-semibold" />
+            </div>
+            <div>
+              <label class="block text-xs font-extrabold uppercase text-slate-600 mb-1">Blood Group</label>
+              <input type="text" id="set-blood-group" required class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none font-semibold" />
+            </div>
+            <div>
+              <label class="block text-xs font-extrabold uppercase text-slate-600 mb-1">Known Allergies</label>
+              <input type="text" id="set-allergies" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none font-semibold" />
+            </div>
+            <div>
+              <label class="block text-xs font-extrabold uppercase text-slate-600 mb-1">Medical Conditions</label>
+              <input type="text" id="set-conditions" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none font-semibold" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-extrabold uppercase text-slate-600 mb-1">Senior View Caregiver Daily Note Banner</label>
+            <textarea id="set-banner-note" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none font-medium text-sm"></textarea>
+          </div>
+
+          <!-- Voice & Chime Controls -->
+          <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-4 space-y-3">
+            <h3 class="text-sm font-extrabold text-[#1D4ED8] uppercase tracking-wide">Voice Guidance &amp; Chime Settings</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                  <span>Speech Speed Rate</span>
+                  <span id="set-speech-rate-val" class="text-[#1D4ED8]">0.85x</span>
+                </div>
+                <input
+                  type="range"
+                  id="set-speech-rate"
+                  min="0.6"
+                  max="1.2"
+                  step="0.05"
+                  oninput="document.getElementById('set-speech-rate-val').textContent = this.value + 'x'"
+                  class="w-full accent-[#1D4ED8]"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Voice Accent / Narrator</label>
+                <select id="set-voice-uri" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm font-semibold">
+                  <option value="">System Default Voice</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <label class="inline-flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-800">
+                <input type="checkbox" id="set-chime-enabled" class="w-4 h-4 rounded accent-[#1D4ED8]" />
+                <span>Play gentle Web Audio chime before alerts</span>
+              </label>
+
+              <button
+                type="button"
+                onclick="previewVoiceSettings()"
+                class="px-3.5 py-1.5 rounded-xl bg-white hover:bg-blue-100 text-[#1D4ED8] border border-blue-300 text-xs font-bold"
+              >
+                Test Voice &amp; Chime
+              </button>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="submit" class="px-6 py-3 rounded-2xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold text-sm sm:text-base shadow-sm">
+              Save Profile &amp; Voice Settings
+            </button>
+          </div>
+        </form>
+
+        <!-- TAB B: CAREGIVER, DOCTOR & SOS CONTACTS -->
+        <form id="form-settings-contacts" onsubmit="saveContactsSettings(event)" class="hidden space-y-4">
+          <div class="bg-red-50/70 border border-red-200 rounded-2xl p-4 space-y-3">
+            <h3 class="text-sm font-extrabold text-[#DC2626] uppercase">Primary Caregiver (SOS Contact)</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Caregiver Name</label>
+                <input type="text" id="set-cg-name" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Relationship</label>
+                <input type="text" id="set-cg-relation" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Phone / WhatsApp</label>
+                <input type="text" id="set-cg-phone" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-4 space-y-3">
+            <h3 class="text-sm font-extrabold text-[#1D4ED8] uppercase">Family Doctor / Specialist</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Doctor Name</label>
+                <input type="text" id="set-doc-name" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Clinic / Hospital</label>
+                <input type="text" id="set-doc-clinic" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Doctor Phone</label>
+                <input type="text" id="set-doc-phone" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-3">
+            <h3 class="text-sm font-extrabold text-[#059669] uppercase">Pharmacy Refill Contact</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Pharmacy Name</label>
+                <input type="text" id="set-pharm-name" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Pharmacy WhatsApp Number</label>
+                <input type="text" id="set-pharm-phone" required class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white font-semibold text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-extrabold uppercase text-slate-600 mb-1">
+              Emergency SOS WhatsApp Message Template
+              <span class="font-normal text-slate-500">(Use {patientName} &amp; {vitalsSummary})</span>
+            </label>
+            <textarea id="set-sos-template" rows="2" required class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-sm font-medium"></textarea>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-1">
+            <button type="submit" class="px-6 py-3 rounded-2xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold text-sm sm:text-base shadow-sm">
+              Save Emergency &amp; Care Contacts
+            </button>
+          </div>
+        </form>
+
+        <!-- TAB C: CLINICAL VITALS THRESHOLDS -->
+        <form id="form-settings-thresholds" onsubmit="saveThresholdsSettings(event)" class="hidden space-y-4">
+          <p class="text-sm text-slate-600">
+            Customize the target ranges used to automatically classify Blood Pressure and Blood Sugar readings as <strong>Normal</strong>, <strong>Elevated</strong>, or <strong>High Alert</strong>.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-3">
+              <h3 class="text-sm font-extrabold text-[#059669] uppercase">Max Normal Upper Limits</h3>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Max Normal Systolic BP (mmHg)</label>
+                <input type="number" id="set-norm-sys" min="90" max="180" required class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Max Normal Diastolic BP (mmHg)</label>
+                <input type="number" id="set-norm-dia" min="50" max="120" required class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Max Normal Blood Sugar (mg/dL)</label>
+                <input type="number" id="set-norm-sugar" min="70" max="250" required class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold" />
+              </div>
+            </div>
+
+            <div class="bg-red-50/70 border border-red-200 rounded-2xl p-4 space-y-3">
+              <h3 class="text-sm font-extrabold text-[#DC2626] uppercase">High Alert Trigger Limits</h3>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">High Alert Systolic BP (&ge; mmHg)</label>
+                <input type="number" id="set-high-sys" min="110" max="240" required class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">High Alert Diastolic BP (&ge; mmHg)</label>
+                <input type="number" id="set-high-dia" min="70" max="150" required class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">High Alert Blood Sugar (&ge; mg/dL)</label>
+                <input type="number" id="set-high-sugar" min="120" max="450" required class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold" />
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="submit" class="px-6 py-3 rounded-2xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold text-sm sm:text-base shadow-sm">
+              Apply Clinical Thresholds
+            </button>
+          </div>
+        </form>
+
+        <!-- TAB D: JSON BACKUP, RESTORE, PWA INSTALL & RESET -->
+        <div id="panel-settings-backup" class="hidden space-y-4">
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+            <h3 class="text-base font-extrabold text-slate-900">Full Data Backup &amp; Cross-Device Restore (JSON)</h3>
+            <p class="text-xs sm:text-sm text-slate-600">
+              Export all your customized medications, contacts, vitals, notes, and logs into a portable JSON file, or restore from a previous backup.
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onclick="exportFullJSONBackup()"
+                class="px-4 py-2.5 rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-sm font-bold flex items-center gap-2"
+              >
+                <span>Download JSON Backup</span>
+              </button>
+
+              <label class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border-2 border-slate-300 text-sm font-bold cursor-pointer flex items-center gap-2">
+                <span>Restore from JSON File</span>
+                <input type="file" accept=".json,application/json" onchange="importFullJSONBackup(event)" class="hidden" />
+              </label>
+
+              <button
+                type="button"
+                onclick="downloadHealthReportCSV()"
+                class="px-4 py-2.5 rounded-xl bg-[#059669] hover:bg-emerald-700 text-white text-sm font-bold"
+              >
+                Download CSV Report
+              </button>
+            </div>
+          </div>
+
+          <!-- Install on Phone Home Screen Guide -->
+          <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-4 space-y-2">
+            <h3 class="text-base font-extrabold text-[#1D4ED8]">Install RemindCare on Your Phone Home Screen</h3>
+            <p class="text-xs sm:text-sm text-slate-700">
+              <strong>Android Chrome:</strong> Tap the <strong>⋮ (three dots)</strong> menu &rarr; <strong>Add to Home screen</strong> (or <strong>Install app</strong>).<br />
+              <strong>iPhone Safari:</strong> Tap the <strong>Share</strong> icon &rarr; <strong>Add to Home Screen</strong>.
+            </p>
+            <button
+              id="pwa-native-install-btn"
+              type="button"
+              onclick="triggerNativeInstallPrompt()"
+              class="hidden mt-2 px-4 py-2 rounded-xl bg-[#1D4ED8] text-white text-xs font-bold"
+            >
+              Install App Prompt
+            </button>
+          </div>
+
+          <!-- Factory Reset -->
+          <div class="bg-red-50/70 border border-red-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h4 class="text-sm font-extrabold text-[#DC2626]">Reset to Default Demo Data</h4>
+              <p class="text-xs text-slate-600">Restores original sample patient, medications, and logs.</p>
+            </div>
+            <button
+              type="button"
+              onclick="confirmFactoryReset()"
+              class="px-4 py-2 rounded-xl bg-[#DC2626] hover:bg-red-700 text-white text-xs sm:text-sm font-bold"
+            >
+              Reset All Data
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 2: ADD / EDIT MEDICATION MODAL (ALL FIELDS EDITABLE)             -->
+  <!-- ====================================================================== -->
+  <div id="med-editor-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="med-editor-title">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h2 id="med-editor-title" class="text-xl sm:text-2xl font-extrabold text-slate-900">Edit Medication</h2>
+        <button onclick="closeModal('med-editor-modal')" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Close modal">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="med-editor-form" onsubmit="handleSaveMedication(event)" class="space-y-4">
+        <input type="hidden" id="edit-med-id" />
+
+        <div>
+          <label for="edit-med-name" class="block text-sm font-bold text-slate-800 mb-1">Medicine Name &amp; Strength *</label>
+          <input
+            type="text"
+            id="edit-med-name"
+            required
+            placeholder="e.g. Metformin 500mg"
+            class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-base font-semibold"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="edit-med-dosage" class="block text-sm font-bold text-slate-800 mb-1">Dosage *</label>
+            <input
+              type="text"
+              id="edit-med-dosage"
+              required
+              placeholder="e.g. 1 Tablet / 5 ml"
+              class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-base font-semibold"
+            />
+          </div>
+
+          <div>
+            <label for="edit-med-color" class="block text-sm font-bold text-slate-800 mb-1">Pill Color Tag</label>
+            <select
+              id="edit-med-color"
+              class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-base font-semibold bg-white"
+            >
+              <option value="blue">Clinical Blue</option>
+              <option value="emerald">Emerald Green</option>
+              <option value="amber">Warm Amber</option>
+              <option value="rose">Coral Red</option>
+              <option value="purple">Royal Purple</option>
+              <option value="slate">Neutral Slate</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="edit-med-slot" class="block text-sm font-bold text-slate-800 mb-1">Time Slot *</label>
+            <select
+              id="edit-med-slot"
+              class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-base font-semibold bg-white"
+            >
+              <option value="Morning">Morning</option>
+              <option value="Afternoon">Afternoon</option>
+              <option value="Evening">Evening</option>
+              <option value="Night">Night</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="edit-med-time" class="block text-sm font-bold text-slate-800 mb-1">Exact Time (HH:MM) *</label>
+            <input
+              type="time"
+              id="edit-med-time"
+              required
+              class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-base font-semibold"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="edit-med-instruction" class="block text-sm font-bold text-slate-800 mb-1">Intake / Meal Instruction *</label>
+          <input
+            type="text"
+            id="edit-med-instruction"
+            list="instruction-suggestions"
+            required
+            placeholder="e.g. After Breakfast"
+            class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-base font-semibold"
+          />
+          <datalist id="instruction-suggestions">
+            <option value="After Breakfast"></option>
+            <option value="Before Breakfast (Empty Stomach)"></option>
+            <option value="With Full Glass of Water"></option>
+            <option value="After Lunch"></option>
+            <option value="Evening Snack Time"></option>
+            <option value="After Dinner"></option>
+            <option value="Before Sleep"></option>
+          </datalist>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="edit-med-stock" class="block text-sm font-bold text-slate-800 mb-1">Current Stock (Pills) *</label>
+            <input
+              type="number"
+              id="edit-med-stock"
+              required
+              min="0"
+              max="999"
+              class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-base font-semibold"
+            />
+          </div>
+
+          <div>
+            <label for="edit-med-threshold" class="block text-sm font-bold text-slate-800 mb-1">Low-Stock Alert At (&le;)</label>
+            <input
+              type="number"
+              id="edit-med-threshold"
+              required
+              min="1"
+              max="100"
+              class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-[#1D4ED8] focus:outline-none text-base font-semibold"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onclick="closeModal('med-editor-modal')"
+            class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-base"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-6 py-3 rounded-2xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold text-base shadow-sm"
+          >
+            Save Medicine
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 3: EDIT VITALS ENTRY MODAL                                       -->
+  <!-- ====================================================================== -->
+  <div id="vitals-editor-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="vitals-editor-title">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 id="vitals-editor-title" class="text-xl font-extrabold text-slate-900">Edit Vitals Reading</h2>
+        <button onclick="closeModal('vitals-editor-modal')" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveEditedVital(event)" class="space-y-3.5">
+        <input type="hidden" id="edit-vital-id" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">BP Systolic (mmHg)</label>
+            <input type="number" id="edit-vital-sys" required min="50" max="260" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">BP Diastolic (mmHg)</label>
+            <input type="number" id="edit-vital-dia" required min="30" max="160" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Blood Sugar (mg/dL)</label>
+            <input type="number" id="edit-vital-sugar" required min="30" max="600" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Pulse (bpm)</label>
+            <input type="number" id="edit-vital-pulse" min="30" max="220" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-bold" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Recorded Date &amp; Time</label>
+          <input type="text" id="edit-vital-timestamp" required class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-semibold text-sm" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Observation Note</label>
+          <input type="text" id="edit-vital-note" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-medium text-sm" />
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('vitals-editor-modal')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-sm">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#1D4ED8] text-white font-bold text-sm">Update Reading</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 4: ADD / EDIT AUDIT LOG ENTRY MODAL                              -->
+  <!-- ====================================================================== -->
+  <div id="audit-editor-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="audit-editor-title">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 id="audit-editor-title" class="text-xl font-extrabold text-slate-900">Edit Dose Audit Entry</h2>
+        <button onclick="closeModal('audit-editor-modal')" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveAuditEntry(event)" class="space-y-3.5">
+        <input type="hidden" id="edit-audit-id" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Status / Action</label>
+            <select id="edit-audit-action" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 bg-white font-bold text-sm">
+              <option value="Taken">Taken</option>
+              <option value="Manual">Manual Entry</option>
+              <option value="Vitals">Vitals</option>
+              <option value="Refill">Refill</option>
+              <option value="Undo">Undo / Skipped</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Timestamp</label>
+            <input type="text" id="edit-audit-timestamp" required class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-semibold text-sm" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Log Description *</label>
+          <input type="text" id="edit-audit-detail" required placeholder="e.g. Amlodipine 5mg taken with water" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-semibold text-sm" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Caregiver Note (Optional)</label>
+          <input type="text" id="edit-audit-note" placeholder="e.g. Verified by daughter on phone" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-medium text-sm" />
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('audit-editor-modal')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-sm">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#1D4ED8] text-white font-bold text-sm">Save Log Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 5: ADD / EDIT CAREGIVER INSTRUCTION STICKY NOTE MODAL            -->
+  <!-- ====================================================================== -->
+  <div id="note-editor-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="note-editor-title">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 id="note-editor-title" class="text-xl font-extrabold text-slate-900">Edit Care Instruction Note</h2>
+        <button onclick="closeModal('note-editor-modal')" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveCaregiverNote(event)" class="space-y-3.5">
+        <input type="hidden" id="edit-note-id" />
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Instruction Title *</label>
+          <input type="text" id="edit-note-title" required placeholder="e.g. Diet & Hydration Rule" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-sm" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Detailed Instruction *</label>
+          <textarea id="edit-note-content" rows="3" required placeholder="Enter clear care guidance..." class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 font-medium text-sm"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Author / Doctor</label>
+            <input type="text" id="edit-note-author" required class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 font-semibold text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Priority Badge</label>
+            <select id="edit-note-priority" class="w-full px-3 py-2.5 rounded-xl border-2 border-slate-300 bg-white font-bold text-sm">
+              <option value="normal">Standard Note</option>
+              <option value="important">High Priority</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('note-editor-modal')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-sm">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#1D4ED8] text-white font-bold text-sm">Save Instruction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 6: EDIT 7-DAY HISTORICAL ADHERENCE MODAL                         -->
+  <!-- ====================================================================== -->
+  <div id="weekly-editor-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="weekly-editor-title">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 id="weekly-editor-title" class="text-xl font-extrabold text-slate-900">Edit 7-Day Adherence History</h2>
+        <button onclick="closeModal('weekly-editor-modal')" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveWeeklyAdherence(event)" class="space-y-3">
+        <div id="weekly-editor-inputs" class="grid grid-cols-2 gap-3">
+          <!-- Populated dynamically -->
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('weekly-editor-modal')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-sm">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#1D4ED8] text-white font-bold text-sm">Save 7-Day Trend</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 7: DYNAMIC EMERGENCY SOS MODAL                                   -->
+  <!-- ====================================================================== -->
+  <div id="sos-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="sos-modal-title">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border-4 border-[#DC2626] shadow-2xl space-y-5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3 text-[#DC2626]">
+          <div class="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center shrink-0">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div>
+            <h2 id="sos-modal-title" class="text-2xl font-extrabold text-slate-900">Emergency SOS</h2>
+            <p class="text-xs sm:text-sm font-semibold text-[#DC2626]">Instant Caregiver &amp; Doctor Dispatch</p>
+          </div>
+        </div>
+        <button onclick="closeModal('sos-modal'); openSettingsModal('contacts');" class="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700">
+          Edit Contacts
+        </button>
+      </div>
+
+      <p id="sos-modal-description" class="text-sm sm:text-base text-slate-700 font-medium leading-relaxed">
+        Tap below to immediately call your primary caregiver or send an urgent WhatsApp health alert.
+      </p>
+
+      <div class="space-y-3">
+        <!-- One-Tap Caregiver Phone Dialer -->
+        <a
+          id="sos-call-caregiver-link"
+          href="tel:+919876543210"
+          class="w-full min-h-[56px] px-4 py-3.5 rounded-2xl bg-[#DC2626] hover:bg-red-700 text-white font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 shadow-md transition-all"
+        >
+          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+          </svg>
+          <span id="sos-call-caregiver-text">Call Caregiver</span>
+        </a>
+
+        <!-- WhatsApp Caregiver Alert Link -->
+        <a
+          id="sos-whatsapp-link"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="w-full min-h-[54px] px-4 py-3.5 rounded-2xl bg-[#059669] hover:bg-emerald-700 text-white font-bold text-base flex items-center justify-center gap-2.5 shadow-sm transition-all"
+        >
+          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+          </svg>
+          <span>Send WhatsApp SOS Alert</span>
+        </a>
+
+        <!-- One-Tap Family Doctor Call -->
+        <a
+          id="sos-call-doctor-link"
+          href="tel:+919437011223"
+          class="w-full min-h-[52px] px-4 py-3 rounded-2xl bg-blue-50 hover:bg-blue-100 text-[#1D4ED8] border-2 border-[#1D4ED8] font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all"
+        >
+          <span id="sos-call-doctor-text">Call Doctor</span>
+        </a>
+      </div>
+
+      <button
+        onclick="closeModal('sos-modal')"
+        class="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-base"
+      >
+        Cancel &amp; Close
+      </button>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 8: CUSTOM CONFIRMATION MODAL (NEVER USES window.confirm/alert)   -->
+  <!-- ====================================================================== -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+      <h2 id="confirm-modal-title" class="text-xl font-extrabold text-slate-900">Confirm Action</h2>
+      <p id="confirm-modal-message" class="text-base text-slate-600 leading-relaxed">Are you sure?</p>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button
+          onclick="closeModal('confirm-modal')"
+          class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm sm:text-base"
+        >
+          Cancel
+        </button>
+        <button
+          id="confirm-modal-action-btn"
+          class="px-5 py-3 rounded-2xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold text-sm sm:text-base shadow-sm"
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION BANNER ==================== -->
+  <div
+    id="toast-banner"
+    class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 hidden max-w-md w-[92%] bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-3 text-sm sm:text-base font-semibold"
+    role="status"
+    aria-live="polite"
+  >
+    <span id="toast-icon" class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+    <span id="toast-message">Action completed</span>
+  </div>
+
+  <!-- ==================== COMPLETE APPLICATION LOGIC ==================== -->
+  <script>
+    /**
+     * RemindCare Editable Clinical PWA
+     * All state objects (profile, voiceSettings, contacts, vitalsThresholds, medications,
+     * vitalsHistory, auditLog, caregiverNotes, weeklyAdherence) are persisted automatically
+     * in localStorage and can be edited, exported as JSON/CSV, or restored anytime.
+     */
+    const STORAGE_KEY = 'remindcare_editable_pwa_v2';
+
+    const PILL_COLOR_STYLES = {
+      blue:    { badge: 'bg-blue-100 text-[#1D4ED8] border-blue-200', dot: 'bg-[#1D4ED8]', label: 'Blue' },
+      emerald: { badge: 'bg-emerald-100 text-[#059669] border-emerald-200', dot: 'bg-[#059669]', label: 'Green' },
+      amber:   { badge: 'bg-amber-100 text-[#D97706] border-amber-200', dot: 'bg-[#D97706]', label: 'Amber' },
+      rose:    { badge: 'bg-rose-100 text-rose-700 border-rose-200', dot: 'bg-rose-600', label: 'Coral' },
+      purple:  { badge: 'bg-purple-100 text-purple-700 border-purple-200', dot: 'bg-purple-600', label: 'Purple' },
+      slate:   { badge: 'bg-slate-200 text-slate-800 border-slate-300', dot: 'bg-slate-600', label: 'Slate' }
+    };
+
+    function getDefaultState() {
+      const todayLabel = new Date().toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+
+      return {
+        activeMode: 'senior',
+        seniorEditMode: false,
+        profile: {
+          greetingPrefix: 'Namaste',
+          patientName: 'Ramesh Sharma',
+          age: '72 yrs',
+          bloodGroup: 'B+',
+          allergies: 'Penicillin',
+          conditions: 'Type 2 Diabetes, Hypertension',
+          caregiverNoteBanner: 'Drink 2 glasses of warm water after morning medicine. Walk 15 mins after dinner.'
+        },
+        voiceSettings: {
+          speechRate: 0.85,
+          voiceURI: '',
+          chimeEnabled: true
+        },
+        contacts: {
+          caregiverName: 'Ananya Sharma',
+          caregiverRelation: 'Daughter',
+          caregiverPhone: '+91 98765 43210',
+          doctorName: 'Dr. S. K. Mohanty',
+          clinicName: 'Apollo Sugar & Heart Clinic',
+          doctorPhone: '+91 94370 11223',
+          pharmacyName: 'MedPlus Care Pharmacy',
+          pharmacyWhatsApp: '+91 98765 00112',
+          sosMessageTemplate: 'EMERGENCY SOS from {patientName} via RemindCare. Please call immediately! {vitalsSummary}'
+        },
+        vitalsThresholds: {
+          maxNormalSys: 130,
+          maxNormalDia: 85,
+          maxNormalSugar: 140,
+          highAlertSys: 145,
+          highAlertDia: 95,
+          highAlertSugar: 200
+        },
+        medications: [
+          {
+            id: 'med-1',
+            name: 'Metformin 500mg',
+            dosage: '1 Tablet',
+            timeSlot: 'Morning',
+            time: '08:00',
+            instruction: 'After Breakfast',
+            stock: 24,
+            lowStockThreshold: 5,
+            pillColor: 'blue',
+            taken: true,
+            takenAt: '08:05 AM'
+          },
+          {
+            id: 'med-2',
+            name: 'Amlodipine 5mg',
+            dosage: '1 Tablet',
+            timeSlot: 'Morning',
+            time: '09:00',
+            instruction: 'With Full Glass of Water',
+            stock: 4,
+            lowStockThreshold: 5,
+            pillColor: 'amber',
+            taken: false,
+            takenAt: null
+          },
+          {
+            id: 'med-3',
+            name: 'Atorvastatin 10mg',
+            dosage: '1 Capsule',
+            timeSlot: 'Afternoon',
+            time: '14:00',
+            instruction: 'After Lunch',
+            stock: 18,
+            lowStockThreshold: 5,
+            pillColor: 'emerald',
+            taken: false,
+            takenAt: null
+          },
+          {
+            id: 'med-4',
+            name: 'Telmisartan 40mg',
+            dosage: '1 Tablet',
+            timeSlot: 'Night',
+            time: '21:00',
+            instruction: 'Before Sleep',
+            stock: 15,
+            lowStockThreshold: 5,
+            pillColor: 'purple',
+            taken: false,
+            takenAt: null
+          }
+        ],
+        vitalsHistory: [
+          {
+            id: 'vit-1',
+            systolic: 126,
+            diastolic: 82,
+            sugar: 118,
+            pulse: 74,
+            note: 'Fasting morning check',
+            timestamp: `${todayLabel}, 08:15 AM`
+          },
+          {
+            id: 'vit-2',
+            systolic: 134,
+            diastolic: 86,
+            sugar: 148,
+            pulse: 78,
+            note: '2 hrs post dinner',
+            timestamp: 'Yesterday, 09:30 PM'
+          }
+        ],
+        auditLog: [
+          {
+            id: 'log-1',
+            action: 'Taken',
+            detail: 'Metformin 500mg (1 Tablet) marked as taken',
+            timestamp: '08:05 AM',
+            note: 'Taken after breakfast'
+          }
+        ],
+        caregiverNotes: [
+          {
+            id: 'note-1',
+            title: 'Morning Hydration & BP Rule',
+            content: 'Check blood pressure seated after 5 minutes of rest before taking Amlodipine 5mg.',
+            author: 'Dr. S. K. Mohanty',
+            updatedAt: 'Updated Today',
+            priority: 'important'
+          },
+          {
+            id: 'note-2',
+            title: 'Evening Diet Guidance',
+            content: 'Keep dinner light before 8:15 PM. Avoid salty pickles and sugary tea.',
+            author: 'Ananya Sharma',
+            updatedAt: 'Updated Yesterday',
+            priority: 'normal'
+          }
+        ],
+        weeklyAdherence: [
+          { day: 'Tue', pct: 100 },
+          { day: 'Wed', pct: 100 },
+          { day: 'Thu', pct: 75 },
+          { day: 'Fri', pct: 100 },
+          { day: 'Sat', pct: 100 },
+          { day: 'Sun', pct: 100 }
+        ]
+      };
+    }
+
+    let appState = loadState();
+    let deferredInstallPrompt = null;
+    let isSpeaking = false;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          const initial = getDefaultState();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+          return initial;
+        }
+        const parsed = JSON.parse(raw);
+        const defaults = getDefaultState();
+        // Merge safely with defaults so missing keys never break older saved objects
+        return {
+          ...defaults,
+          ...parsed,
+          profile: { ...defaults.profile, ...(parsed.profile || {}) },
+          voiceSettings: { ...defaults.voiceSettings, ...(parsed.voiceSettings || {}) },
+          contacts: { ...defaults.contacts, ...(parsed.contacts || {}) },
+          vitalsThresholds: { ...defaults.vitalsThresholds, ...(parsed.vitalsThresholds || {}) }
+        };
+      } catch (err) {
+        console.error('Failed to load state:', err);
+        return getDefaultState();
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (err) {
+        console.error('Failed to save state:', err);
+      }
+    }
+
+    // ==================== PWA MANIFEST SETUP (NO BASE64) ====================
+    function initPWAMetadata() {
+      try {
+        const svgMarkup = encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#1D4ED8"/><path d="M256 128v256M128 256h256" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round"/></svg>`
+        );
+        const iconUrl = `data:image/svg+xml;utf8,${svgMarkup}`;
+
+        const manifest = {
+          name: 'RemindCare — Editable Senior Medication Companion',
+          short_name: 'RemindCare',
+          description: 'Fully editable senior medication management and caregiver companion',
+          start_url: '.',
+          display: 'standalone',
+          background_color: '#F1F5F9',
+          theme_color: '#1D4ED8',
+          icons: [
+            { src: iconUrl, sizes: '192x192', type: 'image/svg+xml' },
+            { src: iconUrl, sizes: '512x512', type: 'image/svg+xml' }
+          ]
+        };
+
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        document.getElementById('pwa-manifest-link').setAttribute('href', manifestUrl);
+      } catch (e) {
+        // Non-blocking fallback
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        const nativeBtn = document.getElementById('pwa-native-install-btn');
+        if (nativeBtn) nativeBtn.classList.remove('hidden');
+      });
+    }
+
+    async function triggerNativeInstallPrompt() {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+    }
+
+    // ==================== TIME & FORMATTING HELPERS ====================
+    function formatTime12Hour(time24) {
+      if (!time24 || !time24.includes(':')) return time24;
+      const [hStr, mStr] = time24.split(':');
+      let h = parseInt(hStr, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${String(h).padStart(2, '0')}:${mStr} ${ampm}`;
+    }
+
+    function getCurrentTimestampShort() {
+      return new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+
+    function getCurrentTimestampFull() {
+      const now = new Date();
+      const datePart = now.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      const timePart = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      return `${datePart}, ${timePart}`;
+    }
+
+    function updateLiveClock() {
+      const now = new Date();
+      const clockEl = document.getElementById('senior-live-clock');
+      const dateEl = document.getElementById('senior-date-display');
+      if (clockEl) {
+        clockEl.textContent = now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+      }
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString('en-IN', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+      }
+    }
+
+    function sanitizeDigitsForWhatsApp(phoneStr) {
+      return String(phoneStr || '').replace(/[^\d]/g, '');
+    }
+
+    // ==================== WEB AUDIO CHIME & WEB SPEECH API ====================
+    function playClinicalChime(forcePlay = false) {
+      if (!forcePlay && !appState.voiceSettings.chimeEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const notes = [523.25, 659.25, 783.99]; // C5, E5, G5 warm clinical chime
+
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.16);
+
+          gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.16);
+          gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + idx * 0.16 + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.16 + 0.55);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + idx * 0.16);
+          osc.stop(ctx.currentTime + idx * 0.16 + 0.6);
+        });
+      } catch (e) {
+        console.warn('Web Audio API unavailable:', e);
+      }
+    }
+
+    function speakText(message, customRate = null, customVoiceURI = null) {
+      if (!('speechSynthesis' in window)) {
+        showToast('Voice synthesis is not supported in this browser.', 'amber');
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.rate = customRate || Number(appState.voiceSettings.speechRate) || 0.85;
+      utterance.pitch = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const targetURI = customVoiceURI !== null ? customVoiceURI : appState.voiceSettings.voiceURI;
+      const preferredVoice =
+        (targetURI && voices.find((v) => v.voiceURI === targetURI)) ||
+        voices.find((v) => v.lang === 'en-IN') ||
+        voices.find((v) => v.lang.startsWith('en-'));
+      if (preferredVoice) utterance.voice = preferredVoice;
+
+      const readBtn = document.getElementById('btn-read-aloud');
+      const readBtnText = document.getElementById('btn-read-aloud-text');
+
+      utterance.onstart = () => {
+        isSpeaking = true;
+        if (readBtn) readBtn.classList.add('speaking-pulse');
+        if (readBtnText) readBtnText.textContent = 'Stop Voice Reading';
+      };
+
+      utterance.onend = () => {
+        isSpeaking = false;
+        if (readBtn) readBtn.classList.remove('speaking-pulse');
+        if (readBtnText) readBtnText.textContent = 'Read Schedule Aloud';
+      };
+
+      utterance.onerror = () => {
+        isSpeaking = false;
+        if (readBtn) readBtn.classList.remove('speaking-pulse');
+        if (readBtnText) readBtnText.textContent = 'Read Schedule Aloud';
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function readScheduleAloud() {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        document.getElementById('btn-read-aloud').classList.remove('speaking-pulse');
+        document.getElementById('btn-read-aloud-text').textContent = 'Read Schedule Aloud';
+        return;
+      }
+
+      const greeting = appState.profile.greetingPrefix || 'Namaste';
+      const name = appState.profile.patientName || 'Patient';
+      const pending = getSortedMedications().filter((m) => !m.taken);
+
+      if (pending.length === 0) {
+        speakText(`${greeting} ${name}. Wonderful job! You have taken all your scheduled medicines for today.`);
+        return;
+      }
+
+      const details = pending
+        .map((m) => `${m.name}, ${m.dosage}, at ${formatTime12Hour(m.time)}, ${m.instruction}`)
+        .join('. Next, ');
+
+      speakText(
+        `${greeting} ${name}. You have ${pending.length} pending ${
+          pending.length === 1 ? 'medicine' : 'medicines'
+        } today. First, ${details}.`
+      );
+    }
+
+    function testChimeAndVoiceAlert() {
+      playClinicalChime();
+      const nextMed = getSortedMedications().find((m) => !m.taken);
+      const alertText = nextMed
+        ? `Medication Reminder for ${appState.profile.patientName}: It is time for ${nextMed.name}, ${nextMed.dosage}. Please take it ${nextMed.instruction}.`
+        : `Medication Reminder for ${appState.profile.patientName}: All scheduled medicines for today are complete.`;
+
+      showToast('Playing chime & voice alert...', 'blue');
+      setTimeout(() => {
+        speakText(alertText);
+      }, 500);
+    }
+
+    // ==================== MODE SWITCHER & SENIOR EDIT MODE ====================
+    function switchMode(mode) {
+      appState.activeMode = mode;
+      saveState();
+
+      const seniorView = document.getElementById('view-senior');
+      const caregiverView = document.getElementById('view-caregiver');
+
+      const topSenior = document.getElementById('top-tab-senior');
+      const topCaregiver = document.getElementById('top-tab-caregiver');
+      const botSenior = document.getElementById('bottom-tab-senior');
+      const botCaregiver = document.getElementById('bottom-tab-caregiver');
+
+      if (mode === 'senior') {
+        seniorView.classList.remove('hidden');
+        caregiverView.classList.add('hidden');
+
+        topSenior.className = 'px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-[#1D4ED8] text-white shadow-sm';
+        topSenior.setAttribute('aria-selected', 'true');
+        topCaregiver.className = 'px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-700 hover:text-slate-900';
+        topCaregiver.setAttribute('aria-selected', 'false');
+
+        botSenior.className = 'py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-[#1D4ED8] text-white shadow-sm';
+        botCaregiver.className = 'py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-slate-100 text-slate-700';
+      } else {
+        seniorView.classList.add('hidden');
+        caregiverView.classList.remove('hidden');
+
+        topCaregiver.className = 'px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-[#1D4ED8] text-white shadow-sm';
+        topCaregiver.setAttribute('aria-selected', 'true');
+        topSenior.className = 'px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-700 hover:text-slate-900';
+        topSenior.setAttribute('aria-selected', 'false');
+
+        botCaregiver.className = 'py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-[#1D4ED8] text-white shadow-sm';
+        botSenior.className = 'py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-slate-100 text-slate-700';
+      }
+
+      renderAll();
+    }
+
+    function toggleSeniorEditMode() {
+      appState.seniorEditMode = !appState.seniorEditMode;
+      saveState();
+      renderSeniorView();
+      showToast(
+        appState.seniorEditMode
+          ? 'Edit Mode ON — Tap Edit on any medicine card'
+          : 'Edit Mode OFF — Clean Senior View active',
+        'blue'
+      );
+    }
+
+    // ==================== EMERGENCY SOS MODAL (DYNAMIC CONTACTS) ====================
+    function triggerEmergencySOS() {
+      const c = appState.contacts;
+      const p = appState.profile;
+      const latestVital = appState.vitalsHistory[0];
+
+      const vitalsSummary = latestVital
+        ? `Latest Vitals: BP ${latestVital.systolic}/${latestVital.diastolic} mmHg, Sugar ${latestVital.sugar} mg/dL (${classifyVitals(latestVital.systolic, latestVital.diastolic, latestVital.sugar).label}).`
+        : '';
+
+      const messageBody = (c.sosMessageTemplate || 'EMERGENCY SOS from {patientName} via RemindCare.')
+        .replace(/\{patientName\}/g, p.patientName)
+        .replace(/\{vitalsSummary\}/g, vitalsSummary)
+        .trim();
+
+      document.getElementById('sos-modal-description').innerHTML = `
+        Tap below to immediately call primary caregiver <strong>${escapeHtml(c.caregiverName)}</strong> (${escapeHtml(c.caregiverRelation)}) or dispatch an urgent WhatsApp alert.
+      `;
+
+      const cgTelLink = document.getElementById('sos-call-caregiver-link');
+      cgTelLink.href = `tel:${c.caregiverPhone.replace(/\s+/g, '')}`;
+      document.getElementById('sos-call-caregiver-text').textContent = `Call ${c.caregiverName} (${c.caregiverPhone})`;
+
+      const waDigits = sanitizeDigitsForWhatsApp(c.caregiverPhone);
+      const waLink = document.getElementById('sos-whatsapp-link');
+      waLink.href = `https://wa.me/${waDigits}?text=${encodeURIComponent(messageBody)}`;
+
+      const docTelLink = document.getElementById('sos-call-doctor-link');
+      docTelLink.href = `tel:${c.doctorPhone.replace(/\s+/g, '')}`;
+      document.getElementById('sos-call-doctor-text').textContent = `Call ${c.doctorName} (${c.doctorPhone})`;
+
+      openModal('sos-modal');
+      speakText(`Emergency S O S opened. Tap the red button to call ${c.caregiverName} immediately.`);
+    }
+
+    // ==================== MEDICATION CRUD & DOSE ACTIONS ====================
+    function getSortedMedications() {
+      return [...appState.medications].sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    function toggleMedicationTaken(medId) {
+      const med = appState.medications.find((m) => m.id === medId);
+      if (!med) return;
+
+      const timeNow = getCurrentTimestampShort();
+
+      if (!med.taken) {
+        med.taken = true;
+        med.takenAt = timeNow;
+        if (med.stock > 0) med.stock -= 1;
+
+        appState.auditLog.unshift({
+          id: 'log-' + Date.now(),
+          action: 'Taken',
+          detail: `${med.name} (${med.dosage}) marked as taken`,
+          timestamp: timeNow,
+          note: ''
+        });
+
+        playClinicalChime();
+        speakText(`${med.name} marked as taken.`);
+        showToast(`${med.name} marked as taken at ${timeNow}`, 'emerald');
+      } else {
+        med.taken = false;
+        med.takenAt = null;
+        med.stock += 1;
+
+        appState.auditLog.unshift({
+          id: 'log-' + Date.now(),
+          action: 'Undo',
+          detail: `Undid taken status for ${med.name} (stock restored)`,
+          timestamp: timeNow,
+          note: ''
+        });
+
+        showToast(`Undid ${med.name} — restored to pending schedule.`, 'amber');
+      }
+
+      saveState();
+      renderAll();
+    }
+
+    function openMedEditorModal(medId) {
+      const titleEl = document.getElementById('med-editor-title');
+      if (medId) {
+        const med = appState.medications.find((m) => m.id === medId);
+        if (!med) return;
+        titleEl.textContent = `Edit ${med.name}`;
+        document.getElementById('edit-med-id').value = med.id;
+        document.getElementById('edit-med-name').value = med.name;
+        document.getElementById('edit-med-dosage').value = med.dosage;
+        document.getElementById('edit-med-color').value = med.pillColor || 'blue';
+        document.getElementById('edit-med-slot').value = med.timeSlot;
+        document.getElementById('edit-med-time').value = med.time;
+        document.getElementById('edit-med-instruction').value = med.instruction;
+        document.getElementById('edit-med-stock').value = med.stock;
+        document.getElementById('edit-med-threshold').value = med.lowStockThreshold ?? 5;
+      } else {
+        titleEl.textContent = 'Add New Prescription';
+        document.getElementById('edit-med-id').value = '';
+        document.getElementById('edit-med-name').value = '';
+        document.getElementById('edit-med-dosage').value = '1 Tablet';
+        document.getElementById('edit-med-color').value = 'blue';
+        document.getElementById('edit-med-slot').value = 'Morning';
+        document.getElementById('edit-med-time').value = '08:30';
+        document.getElementById('edit-med-instruction').value = 'After Breakfast';
+        document.getElementById('edit-med-stock').value = 30;
+        document.getElementById('edit-med-threshold').value = 5;
+      }
+      openModal('med-editor-modal');
+    }
+
+    function handleSaveMedication(event) {
+      event.preventDefault();
+      const id = document.getElementById('edit-med-id').value;
+      const name = document.getElementById('edit-med-name').value.trim();
+      const dosage = document.getElementById('edit-med-dosage').value.trim();
+      const pillColor = document.getElementById('edit-med-color').value;
+      const timeSlot = document.getElementById('edit-med-slot').value;
+      const time = document.getElementById('edit-med-time').value;
+      const instruction = document.getElementById('edit-med-instruction').value.trim();
+      const stock = Math.max(0, parseInt(document.getElementById('edit-med-stock').value, 10) || 0);
+      const lowStockThreshold = Math.max(1, parseInt(document.getElementById('edit-med-threshold').value, 10) || 5);
+
+      if (!name || !dosage || !time) return;
+
+      if (id) {
+        const idx = appState.medications.findIndex((m) => m.id === id);
+        if (idx !== -1) {
+          appState.medications[idx] = {
+            ...appState.medications[idx],
+            name,
+            dosage,
+            pillColor,
+            timeSlot,
+            time,
+            instruction,
+            stock,
+            lowStockThreshold
+          };
+          appState.auditLog.unshift({
+            id: 'log-' + Date.now(),
+            action: 'Edited',
+            detail: `Updated prescription: ${name} (${timeSlot} • ${formatTime12Hour(time)})`,
+            timestamp: getCurrentTimestampShort(),
+            note: ''
+          });
+          showToast(`Updated ${name}`, 'blue');
+        }
+      } else {
+        appState.medications.push({
+          id: 'med-' + Date.now(),
+          name,
+          dosage,
+          pillColor,
+          timeSlot,
+          time,
+          instruction,
+          stock,
+          lowStockThreshold,
+          taken: false,
+          takenAt: null
+        });
+        appState.auditLog.unshift({
+          id: 'log-' + Date.now(),
+          action: 'Added',
+          detail: `Added prescription: ${name} (${timeSlot} • ${formatTime12Hour(time)})`,
+          timestamp: getCurrentTimestampShort(),
+          note: ''
+        });
+        showToast(`Added ${name} to schedule`, 'emerald');
+      }
+
+      saveState();
+      closeModal('med-editor-modal');
+      renderAll();
+    }
+
+    function duplicateMedication(medId) {
+      const med = appState.medications.find((m) => m.id === medId);
+      if (!med) return;
+      const copy = {
+        ...med,
+        id: 'med-' + Date.now(),
+        name: `${med.name} (Evening Dose)`,
+        timeSlot: med.timeSlot === 'Morning' ? 'Night' : 'Morning',
+        time: med.timeSlot === 'Morning' ? '20:30' : '08:30',
+        taken: false,
+        takenAt: null
+      };
+      appState.medications.push(copy);
+      saveState();
+      renderAll();
+      showToast(`Duplicated ${med.name} — tap Edit to adjust time`, 'blue');
+    }
+
+    function confirmDeleteMedication(medId) {
+      const med = appState.medications.find((m) => m.id === medId);
+      if (!med) return;
+
+      openConfirmModal(
+        'Remove Prescription',
+        `Remove "${med.name}" from ${appState.profile.patientName}'s daily schedule?`,
+        () => {
+          appState.medications = appState.medications.filter((m) => m.id !== medId);
+          appState.auditLog.unshift({
+            id: 'log-' + Date.now(),
+            action: 'Edited',
+            detail: `Removed prescription: ${med.name}`,
+            timestamp: getCurrentTimestampShort(),
+            note: ''
+          });
+          saveState();
+          renderAll();
+          showToast(`Removed ${med.name}`, 'amber');
+        }
+      );
+    }
+
+    function confirmStartNewDay() {
+      openConfirmModal(
+        'Start New Day Schedule',
+        `Reset all daily "Taken" checkboxes so ${appState.profile.patientName} can begin a new day? Pill stock counts will remain unchanged.`,
+        () => {
+          appState.medications.forEach((m) => {
+            m.taken = false;
+            m.takenAt = null;
+          });
+          appState.auditLog.unshift({
+            id: 'log-' + Date.now(),
+            action: 'Manual',
+            detail: 'Started new day — reset all daily medication flags',
+            timestamp: getCurrentTimestampShort(),
+            note: ''
+          });
+          saveState();
+          renderAll();
+          showToast('New day started! All doses ready.', 'blue');
+        }
+      );
+    }
+
+    function adjustMedicationStock(medId, delta) {
+      const med = appState.medications.find((m) => m.id === medId);
+      if (!med) return;
+      med.stock = Math.max(0, med.stock + delta);
+      if (delta >= 10) {
+        appState.auditLog.unshift({
+          id: 'log-' + Date.now(),
+          action: 'Refill',
+          detail: `Refilled +${delta} pills for ${med.name} (New stock: ${med.stock})`,
+          timestamp: getCurrentTimestampShort(),
+          note: ''
+        });
+      }
+      saveState();
+      renderAll();
+      showToast(`${med.name}: ${med.stock} pills in stock`, delta > 0 ? 'emerald' : 'amber');
+    }
+
+    function buildPharmacyOrderText() {
+      const lowStockMeds = appState.medications.filter((m) => m.stock <= (m.lowStockThreshold ?? 5));
+      const targetList = lowStockMeds.length > 0 ? lowStockMeds : appState.medications;
+      const header =
+        lowStockMeds.length > 0
+          ? `PHARMACY REFILL ORDER — Patient: ${appState.profile.patientName} (Low Stock Items):`
+          : `PHARMACY PRESCRIPTION ORDER — Patient: ${appState.profile.patientName}:`;
+
+      const lines = targetList.map(
+        (m, i) => `${i + 1}. ${m.name} (${m.dosage}) — Stock left: ${m.stock} pills — Order: 30 units`
+      );
+      return { text: `${header}\n${lines.join('\n')}`, count: targetList.length, isLowOnly: lowStockMeds.length > 0 };
+    }
+
+    function copyPharmacyOrderList() {
+      const order = buildPharmacyOrderText();
+      const textArea = document.createElement('textarea');
+      textArea.value = order.text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(
+          order.isLowOnly
+            ? `Copied ${order.count} low-stock medicine(s) to clipboard!`
+            : 'Copied full prescription order list to clipboard!',
+          'emerald'
+        );
+      } catch (err) {
+        showToast('Unable to copy automatically.', 'amber');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function sendPharmacyWhatsAppOrder() {
+      const order = buildPharmacyOrderText();
+      const digits = sanitizeDigitsForWhatsApp(appState.contacts.pharmacyWhatsApp);
+      const url = `https://wa.me/${digits}?text=${encodeURIComponent(order.text)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    // ==================== VITALS CLASSIFICATION & EDITING ====================
+    function classifyVitals(systolic, diastolic, sugar) {
+      const t = appState.vitalsThresholds;
+      if (systolic >= t.highAlertSys || diastolic >= t.highAlertDia || sugar >= t.highAlertSugar) {
+        return {
+          label: 'High Alert',
+          badgeClass: 'bg-red-100 text-[#DC2626] border-red-300',
+          dotClass: 'bg-[#DC2626]'
+        };
+      }
+      if (systolic > t.maxNormalSys || diastolic > t.maxNormalDia || sugar > t.maxNormalSugar) {
+        return {
+          label: 'Elevated',
+          badgeClass: 'bg-amber-100 text-[#D97706] border-amber-300',
+          dotClass: 'bg-[#D97706]'
+        };
+      }
+      return {
+        label: 'Normal',
+        badgeClass: 'bg-emerald-100 text-[#059669] border-emerald-300',
+        dotClass: 'bg-[#059669]'
+      };
+    }
+
+    function previewVitalsRange() {
+      const sys = parseInt(document.getElementById('input-systolic').value, 10);
+      const dia = parseInt(document.getElementById('input-diastolic').value, 10);
+      const sug = parseInt(document.getElementById('input-sugar').value, 10);
+      const previewEl = document.getElementById('vitals-live-preview');
+
+      if (!sys || !dia || !sug) {
+        previewEl.innerHTML = '<span>Enter BP &amp; Sugar readings above for instant clinical assessment.</span>';
+        return;
+      }
+
+      const range = classifyVitals(sys, dia, sug);
+      previewEl.innerHTML = `
+        <span class="text-slate-700">Clinical Assessment:</span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-extrabold border ${range.badgeClass}">
+          <span class="w-2 h-2 rounded-full ${range.dotClass}"></span>
+          ${range.label}
+        </span>
+      `;
+    }
+
+    function handleSaveVitals(event) {
+      event.preventDefault();
+      const systolic = parseInt(document.getElementById('input-systolic').value, 10);
+      const diastolic = parseInt(document.getElementById('input-diastolic').value, 10);
+      const sugar = parseInt(document.getElementById('input-sugar').value, 10);
+      const pulseVal = parseInt(document.getElementById('input-pulse').value, 10);
+      const note = document.getElementById('input-vital-note').value.trim();
+
+      if (!systolic || !diastolic || !sugar) return;
+
+      const range = classifyVitals(systolic, diastolic, sugar);
+      const fullTime = getCurrentTimestampFull();
+
+      appState.vitalsHistory.unshift({
+        id: 'vit-' + Date.now(),
+        systolic,
+        diastolic,
+        sugar,
+        pulse: isNaN(pulseVal) ? null : pulseVal,
+        note,
+        timestamp: fullTime
+      });
+
+      appState.auditLog.unshift({
+        id: 'log-' + Date.now(),
+        action: 'Vitals',
+        detail: `Vitals logged: BP ${systolic}/${diastolic} mmHg, Sugar ${sugar} mg/dL (${range.label})`,
+        timestamp: getCurrentTimestampShort(),
+        note
+      });
+
+      document.getElementById('vitals-form').reset();
+      document.getElementById('vitals-live-preview').innerHTML =
+        '<span>Enter BP &amp; Sugar readings above for instant clinical assessment.</span>';
+
+      saveState();
+      renderAll();
+
+      speakText(`Vitals saved. Blood pressure ${systolic} over ${diastolic}, blood sugar ${sugar}. Status is ${range.label}.`);
+      showToast(`Vitals saved (${range.label})`, range.label === 'Normal' ? 'emerald' : 'amber');
+    }
+
+    function openVitalsEditorModal(vitalId) {
+      const v = appState.vitalsHistory.find((item) => item.id === vitalId);
+      if (!v) return;
+      document.getElementById('edit-vital-id').value = v.id;
+      document.getElementById('edit-vital-sys').value = v.systolic;
+      document.getElementById('edit-vital-dia').value = v.diastolic;
+      document.getElementById('edit-vital-sugar').value = v.sugar;
+      document.getElementById('edit-vital-pulse').value = v.pulse || '';
+      document.getElementById('edit-vital-timestamp').value = v.timestamp;
+      document.getElementById('edit-vital-note').value = v.note || '';
+      openModal('vitals-editor-modal');
+    }
+
+    function handleSaveEditedVital(event) {
+      event.preventDefault();
+      const id = document.getElementById('edit-vital-id').value;
+      const idx = appState.vitalsHistory.findIndex((item) => item.id === id);
+      if (idx === -1) return;
+
+      const systolic = parseInt(document.getElementById('edit-vital-sys').value, 10);
+      const diastolic = parseInt(document.getElementById('edit-vital-dia').value, 10);
+      const sugar = parseInt(document.getElementById('edit-vital-sugar').value, 10);
+      const pulseRaw = parseInt(document.getElementById('edit-vital-pulse').value, 10);
+
+      appState.vitalsHistory[idx] = {
+        ...appState.vitalsHistory[idx],
+        systolic,
+        diastolic,
+        sugar,
+        pulse: isNaN(pulseRaw) ? null : pulseRaw,
+        timestamp: document.getElementById('edit-vital-timestamp').value.trim(),
+        note: document.getElementById('edit-vital-note').value.trim()
+      };
+
+      saveState();
+      closeModal('vitals-editor-modal');
+      renderAll();
+      showToast('Vitals reading updated', 'blue');
+    }
+
+    function deleteVitalEntry(vitalId) {
+      openConfirmModal('Delete Vitals Entry', 'Remove this blood pressure & sugar reading from history?', () => {
+        appState.vitalsHistory = appState.vitalsHistory.filter((v) => v.id !== vitalId);
+        saveState();
+        renderAll();
+        showToast('Vitals entry deleted', 'amber');
+      });
+    }
+
+    // ==================== AUDIT LOG & CAREGIVER NOTES EDITORS ====================
+    function openAuditEditorModal(auditId) {
+      const titleEl = document.getElementById('audit-editor-title');
+      if (auditId) {
+        const entry = appState.auditLog.find((a) => a.id === auditId);
+        if (!entry) return;
+        titleEl.textContent = 'Edit Dose Audit Entry';
+        document.getElementById('edit-audit-id').value = entry.id;
+        document.getElementById('edit-audit-action').value = entry.action;
+        document.getElementById('edit-audit-timestamp').value = entry.timestamp;
+        document.getElementById('edit-audit-detail').value = entry.detail;
+        document.getElementById('edit-audit-note').value = entry.note || '';
+      } else {
+        titleEl.textContent = 'Add Manual Audit Log Entry';
+        document.getElementById('edit-audit-id').value = '';
+        document.getElementById('edit-audit-action').value = 'Manual';
+        document.getElementById('edit-audit-timestamp').value = getCurrentTimestampShort();
+        document.getElementById('edit-audit-detail').value = '';
+        document.getElementById('edit-audit-note').value = '';
+      }
+      openModal('audit-editor-modal');
+    }
+
+    function handleSaveAuditEntry(event) {
+      event.preventDefault();
+      const id = document.getElementById('edit-audit-id').value;
+      const action = document.getElementById('edit-audit-action').value;
+      const timestamp = document.getElementById('edit-audit-timestamp').value.trim();
+      const detail = document.getElementById('edit-audit-detail').value.trim();
+      const note = document.getElementById('edit-audit-note').value.trim();
+
+      if (!detail) return;
+
+      if (id) {
+        const idx = appState.auditLog.findIndex((a) => a.id === id);
+        if (idx !== -1) {
+          appState.auditLog[idx] = { ...appState.auditLog[idx], action, timestamp, detail, note };
+        }
+        showToast('Audit log entry updated', 'blue');
+      } else {
+        appState.auditLog.unshift({
+          id: 'log-' + Date.now(),
+          action,
+          timestamp,
+          detail,
+          note
+        });
+        showToast('Manual log entry added', 'emerald');
+      }
+
+      saveState();
+      closeModal('audit-editor-modal');
+      renderAll();
+    }
+
+    function deleteAuditEntry(auditId) {
+      openConfirmModal('Delete Log Entry', 'Remove this entry from the Daily Dose Audit Log?', () => {
+        appState.auditLog = appState.auditLog.filter((a) => a.id !== auditId);
+        saveState();
+        renderAll();
+        showToast('Log entry deleted', 'amber');
+      });
+    }
+
+    function openNoteEditorModal(noteId) {
+      const titleEl = document.getElementById('note-editor-title');
+      if (noteId) {
+        const note = appState.caregiverNotes.find((n) => n.id === noteId);
+        if (!note) return;
+        titleEl.textContent = 'Edit Care Instruction Note';
+        document.getElementById('edit-note-id').value = note.id;
+        document.getElementById('edit-note-title').value = note.title;
+        document.getElementById('edit-note-content').value = note.content;
+        document.getElementById('edit-note-author').value = note.author;
+        document.getElementById('edit-note-priority').value = note.priority || 'normal';
+      } else {
+        titleEl.textContent = 'Add Care Instruction Note';
+        document.getElementById('edit-note-id').value = '';
+        document.getElementById('edit-note-title').value = '';
+        document.getElementById('edit-note-content').value = '';
+        document.getElementById('edit-note-author').value = appState.contacts.caregiverName;
+        document.getElementById('edit-note-priority').value = 'normal';
+      }
+      openModal('note-editor-modal');
+    }
+
+    function handleSaveCaregiverNote(event) {
+      event.preventDefault();
+      const id = document.getElementById('edit-note-id').value;
+      const title = document.getElementById('edit-note-title').value.trim();
+      const content = document.getElementById('edit-note-content').value.trim();
+      const author = document.getElementById('edit-note-author').value.trim();
+      const priority = document.getElementById('edit-note-priority').value;
+
+      if (!title || !content) return;
+
+      if (id) {
+        const idx = appState.caregiverNotes.findIndex((n) => n.id === id);
+        if (idx !== -1) {
+          appState.caregiverNotes[idx] = {
+            ...appState.caregiverNotes[idx],
+            title,
+            content,
+            author,
+            priority,
+            updatedAt: `Edited ${getCurrentTimestampShort()}`
+          };
+        }
+        showToast('Care instruction updated', 'blue');
+      } else {
+        appState.caregiverNotes.unshift({
+          id: 'note-' + Date.now(),
+          title,
+          content,
+          author,
+          priority,
+          updatedAt: `Added ${getCurrentTimestampShort()}`
+        });
+        showToast('Care instruction added', 'emerald');
+      }
+
+      saveState();
+      closeModal('note-editor-modal');
+      renderAll();
+    }
+
+    function deleteCaregiverNote(noteId) {
+      openConfirmModal('Delete Instruction Note', 'Remove this care instruction note from the board?', () => {
+        appState.caregiverNotes = appState.caregiverNotes.filter((n) => n.id !== noteId);
+        saveState();
+        renderAll();
+        showToast('Instruction note removed', 'amber');
+      });
+    }
+
+    // ==================== 7-DAY HISTORICAL ADHERENCE EDITOR ====================
+    function openWeeklyEditorModal() {
+      const container = document.getElementById('weekly-editor-inputs');
+      container.innerHTML = appState.weeklyAdherence
+        .map(
+          (item, idx) => `
+          <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
+            <input
+              type="text"
+              id="wk-day-${idx}"
+              value="${escapeHtml(item.day)}"
+              required
+              class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-extrabold uppercase text-slate-700"
+            />
+            <div class="flex items-center gap-1.5">
+              <input
+                type="number"
+                id="wk-pct-${idx}"
+                value="${item.pct}"
+                min="0"
+                max="100"
+                required
+                class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-sm"
+              />
+              <span class="text-xs font-bold text-slate-500">%</span>
+            </div>
+          </div>
+        `
+        )
+        .join('');
+      openModal('weekly-editor-modal');
+    }
+
+    function handleSaveWeeklyAdherence(event) {
+      event.preventDefault();
+      appState.weeklyAdherence = appState.weeklyAdherence.map((item, idx) => {
+        const day = document.getElementById(`wk-day-${idx}`).value.trim() || item.day;
+        const pct = Math.min(100, Math.max(0, parseInt(document.getElementById(`wk-pct-${idx}`).value, 10) || 0));
+        return { day, pct };
+      });
+      saveState();
+      closeModal('weekly-editor-modal');
+      renderCaregiverView();
+      showToast('7-Day adherence trend updated', 'blue');
+    }
+
+    // ==================== GLOBAL SETTINGS MODAL (PROFILE, CONTACTS, THRESHOLDS, BACKUP) ====================
+    function openSettingsModal(initialTab = 'profile') {
+      // Populate Patient & Voice fields
+      document.getElementById('set-greeting').value = appState.profile.greetingPrefix;
+      document.getElementById('set-patient-name').value = appState.profile.patientName;
+      document.getElementById('set-age').value = appState.profile.age;
+      document.getElementById('set-blood-group').value = appState.profile.bloodGroup;
+      document.getElementById('set-allergies').value = appState.profile.allergies;
+      document.getElementById('set-conditions').value = appState.profile.conditions;
+      document.getElementById('set-banner-note').value = appState.profile.caregiverNoteBanner;
+
+      document.getElementById('set-speech-rate').value = appState.voiceSettings.speechRate;
+      document.getElementById('set-speech-rate-val').textContent = `${appState.voiceSettings.speechRate}x`;
+      document.getElementById('set-chime-enabled').checked = !!appState.voiceSettings.chimeEnabled;
+      populateVoiceDropdown();
+
+      // Populate Contacts fields
+      document.getElementById('set-cg-name').value = appState.contacts.caregiverName;
+      document.getElementById('set-cg-relation').value = appState.contacts.caregiverRelation;
+      document.getElementById('set-cg-phone').value = appState.contacts.caregiverPhone;
+      document.getElementById('set-doc-name').value = appState.contacts.doctorName;
+      document.getElementById('set-doc-clinic').value = appState.contacts.clinicName;
+      document.getElementById('set-doc-phone').value = appState.contacts.doctorPhone;
+      document.getElementById('set-pharm-name').value = appState.contacts.pharmacyName;
+      document.getElementById('set-pharm-phone').value = appState.contacts.pharmacyWhatsApp;
+      document.getElementById('set-sos-template').value = appState.contacts.sosMessageTemplate;
+
+      // Populate Thresholds fields
+      document.getElementById('set-norm-sys').value = appState.vitalsThresholds.maxNormalSys;
+      document.getElementById('set-norm-dia').value = appState.vitalsThresholds.maxNormalDia;
+      document.getElementById('set-norm-sugar').value = appState.vitalsThresholds.maxNormalSugar;
+      document.getElementById('set-high-sys').value = appState.vitalsThresholds.highAlertSys;
+      document.getElementById('set-high-dia').value = appState.vitalsThresholds.highAlertDia;
+      document.getElementById('set-high-sugar').value = appState.vitalsThresholds.highAlertSugar;
+
+      switchSettingsTab(initialTab);
+      openModal('settings-modal');
+    }
+
+    function switchSettingsTab(tab) {
+      const tabs = ['profile', 'contacts', 'thresholds', 'backup'];
+      const panels = {
+        profile: document.getElementById('form-settings-profile'),
+        contacts: document.getElementById('form-settings-contacts'),
+        thresholds: document.getElementById('form-settings-thresholds'),
+        backup: document.getElementById('panel-settings-backup')
+      };
+
+      tabs.forEach((t) => {
+        const btn = document.getElementById(`stab-${t}`);
+        if (t === tab) {
+          btn.className = 'py-2 px-2 rounded-xl text-xs sm:text-sm font-bold bg-[#1D4ED8] text-white shadow-sm';
+          panels[t].classList.remove('hidden');
+        } else {
+          btn.className = 'py-2 px-2 rounded-xl text-xs sm:text-sm font-bold text-slate-700 hover:bg-white/60';
+          panels[t].classList.add('hidden');
+        }
+      });
+    }
+
+    function populateVoiceDropdown() {
+      const select = document.getElementById('set-voice-uri');
+      if (!select || !('speechSynthesis' in window)) return;
+      const voices = window.speechSynthesis.getVoices();
+      const currentURI = appState.voiceSettings.voiceURI;
+
+      select.innerHTML = `<option value="">System Default (Auto English)</option>` +
+        voices
+          .filter((v) => v.lang.startsWith('en'))
+          .map(
+            (v) =>
+              `<option value="${escapeHtml(v.voiceURI)}" ${v.voiceURI === currentURI ? 'selected' : ''}>${escapeHtml(
+                v.name
+              )} (${v.lang})</option>`
+          )
+          .join('');
+    }
+
+    function previewVoiceSettings() {
+      const rate = parseFloat(document.getElementById('set-speech-rate').value) || 0.85;
+      const voiceURI = document.getElementById('set-voice-uri').value;
+      const chime = document.getElementById('set-chime-enabled').checked;
+      const greeting = document.getElementById('set-greeting').value.trim() || 'Namaste';
+      const name = document.getElementById('set-patient-name').value.trim() || 'Ramesh Sharma';
+
+      if (chime) playClinicalChime(true);
+      setTimeout(() => {
+        speakText(`${greeting} ${name}. Your voice reminder speed is set to ${rate} times.`, rate, voiceURI);
+      }, chime ? 450 : 50);
+    }
+
+    function saveProfileSettings(event) {
+      event.preventDefault();
+      appState.profile = {
+        greetingPrefix: document.getElementById('set-greeting').value.trim() || 'Namaste',
+        patientName: document.getElementById('set-patient-name').value.trim() || 'Patient',
+        age: document.getElementById('set-age').value.trim(),
+        bloodGroup: document.getElementById('set-blood-group').value.trim(),
+        allergies: document.getElementById('set-allergies').value.trim() || 'None',
+        conditions: document.getElementById('set-conditions').value.trim() || 'None',
+        caregiverNoteBanner: document.getElementById('set-banner-note').value.trim()
+      };
+
+      appState.voiceSettings = {
+        speechRate: parseFloat(document.getElementById('set-speech-rate').value) || 0.85,
+        voiceURI: document.getElementById('set-voice-uri').value,
+        chimeEnabled: document.getElementById('set-chime-enabled').checked
+      };
+
+      saveState();
+      closeModal('settings-modal');
+      renderAll();
+      showToast('Patient profile & voice settings saved!', 'emerald');
+    }
+
+    function saveContactsSettings(event) {
+      event.preventDefault();
+      appState.contacts = {
+        caregiverName: document.getElementById('set-cg-name').value.trim(),
+        caregiverRelation: document.getElementById('set-cg-relation').value.trim(),
+        caregiverPhone: document.getElementById('set-cg-phone').value.trim(),
+        doctorName: document.getElementById('set-doc-name').value.trim(),
+        clinicName: document.getElementById('set-doc-clinic').value.trim(),
+        doctorPhone: document.getElementById('set-doc-phone').value.trim(),
+        pharmacyName: document.getElementById('set-pharm-name').value.trim(),
+        pharmacyWhatsApp: document.getElementById('set-pharm-phone').value.trim(),
+        sosMessageTemplate: document.getElementById('set-sos-template').value.trim()
+      };
+
+      saveState();
+      closeModal('settings-modal');
+      renderAll();
+      showToast('Caregiver, Doctor & Pharmacy contacts updated!', 'emerald');
+    }
+
+    function saveThresholdsSettings(event) {
+      event.preventDefault();
+      appState.vitalsThresholds = {
+        maxNormalSys: parseInt(document.getElementById('set-norm-sys').value, 10) || 130,
+        maxNormalDia: parseInt(document.getElementById('set-norm-dia').value, 10) || 85,
+        maxNormalSugar: parseInt(document.getElementById('set-norm-sugar').value, 10) || 140,
+        highAlertSys: parseInt(document.getElementById('set-high-sys').value, 10) || 145,
+        highAlertDia: parseInt(document.getElementById('set-high-dia').value, 10) || 95,
+        highAlertSugar: parseInt(document.getElementById('set-high-sugar').value, 10) || 200
+      };
+
+      saveState();
+      closeModal('settings-modal');
+      renderAll();
+      showToast('Clinical vitals thresholds updated!', 'blue');
+    }
+
+    // ==================== JSON BACKUP, RESTORE, CSV EXPORT & FACTORY RESET ====================
+    function exportFullJSONBackup() {
+      const payload = JSON.stringify(appState, null, 2);
+      const blob = new Blob([payload], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `RemindCare_Full_Backup_${appState.profile.patientName.replace(/\s+/g, '_')}.json`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('Downloaded full JSON backup file!', 'emerald');
+    }
+
+    function importFullJSONBackup(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed || !Array.isArray(parsed.medications) || !parsed.profile) {
+            throw new Error('Invalid RemindCare backup structure.');
+          }
+          appState = {
+            ...getDefaultState(),
+            ...parsed
+          };
+          saveState();
+          closeModal('settings-modal');
+          switchMode(appState.activeMode || 'senior');
+          showToast('Successfully restored all RemindCare data!', 'emerald');
+        } catch (err) {
+          showToast('Invalid JSON backup file. Please check the file.', 'amber');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function downloadHealthReportCSV() {
+      const p = appState.profile;
+      const c = appState.contacts;
+      const rows = [
+        ['RemindCare Clinical Health & Adherence Report'],
+        ['Patient Name', p.patientName, 'Age', p.age, 'Blood Group', p.bloodGroup],
+        ['Allergies', p.allergies, 'Conditions', p.conditions],
+        ['Primary Caregiver', `${c.caregiverName} (${c.caregiverRelation})`, 'Phone', c.caregiverPhone],
+        ['Primary Doctor', c.doctorName, 'Clinic', c.clinicName],
+        ['Generated At', getCurrentTimestampFull()],
+        [],
+        ['--- MEDICATION SCHEDULE & INVENTORY ---'],
+        ['Medicine Name', 'Dosage', 'Time Slot', 'Scheduled Time', 'Instruction', 'Status Today', 'Taken Timestamp', 'Remaining Stock', 'Low-Stock Limit']
+      ];
+
+      getSortedMedications().forEach((m) => {
+        rows.push([
+          m.name,
+          m.dosage,
+          m.timeSlot,
+          formatTime12Hour(m.time),
+          m.instruction,
+          m.taken ? 'Taken' : 'Pending',
+          m.takenAt || 'N/A',
+          m.stock,
+          m.lowStockThreshold ?? 5
+        ]);
+      });
+
+      rows.push([]);
+      rows.push(['--- VITALS HISTORY LOG ---']);
+      rows.push(['Timestamp', 'BP Systolic (mmHg)', 'BP Diastolic (mmHg)', 'Blood Sugar (mg/dL)', 'Pulse (bpm)', 'Clinical Status', 'Note']);
+
+      appState.vitalsHistory.forEach((v) => {
+        const range = classifyVitals(v.systolic, v.diastolic, v.sugar);
+        rows.push([v.timestamp, v.systolic, v.diastolic, v.sugar, v.pulse || 'N/A', range.label, v.note || '']);
+      });
+
+      const csvContent = rows
+        .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `RemindCare_Health_Report_${p.patientName.replace(/\s+/g, '_')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast('Downloaded Health Report (.csv)', 'emerald');
+    }
+
+    function confirmFactoryReset() {
+      closeModal('settings-modal');
+      openConfirmModal(
+        'Reset All Data to Default Demo',
+        'This will erase all your custom edits and restore the original sample patient profile, medications, and vitals. Continue?',
+        () => {
+          appState = getDefaultState();
+          saveState();
+          switchMode('senior');
+          showToast('Restored default demo data.', 'blue');
+        }
+      );
+    }
+
+    // ==================== RENDER FUNCTIONS ====================
+    function renderAll() {
+      renderSeniorView();
+      renderCaregiverView();
+    }
+
+    function renderSeniorView() {
+      const p = appState.profile;
+      const sortedMeds = getSortedMedications();
+      const totalCount = sortedMeds.length;
+      const takenCount = sortedMeds.filter((m) => m.taken).length;
+      const pct = totalCount === 0 ? 100 : Math.round((takenCount / totalCount) * 100);
+
+      // Update Patient Header Info
+      document.getElementById('senior-badge-age').textContent = `AGE: ${p.age.toUpperCase()}`;
+      document.getElementById('senior-badge-blood').textContent = `BLOOD: ${p.bloodGroup}`;
+      document.getElementById('senior-badge-allergy').textContent = `ALLERGY: ${p.allergies}`;
+      document.getElementById('senior-greeting-heading').textContent = `${p.greetingPrefix}, ${p.patientName}`;
+      document.getElementById('senior-conditions-text').textContent = `Conditions: ${p.conditions}`;
+      document.getElementById('senior-caregiver-banner-text').textContent =
+        p.caregiverNoteBanner || 'Tap Edit Note to add a daily reminder for the patient.';
+
+      // Update Senior Edit Mode Button
+      const editToggleBtn = document.getElementById('btn-toggle-senior-edit');
+      const editToggleLabel = document.getElementById('btn-senior-edit-label');
+      if (appState.seniorEditMode) {
+        editToggleBtn.className = 'min-h-[58px] px-4 py-3.5 rounded-2xl bg-amber-100 text-[#D97706] border-2 border-[#D97706] font-extrabold text-base shadow-sm flex items-center justify-center gap-2.5 transition-all';
+        editToggleLabel.textContent = 'Edit Medicines: ON';
+      } else {
+        editToggleBtn.className = 'min-h-[58px] px-4 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-300 font-bold text-base shadow-sm flex items-center justify-center gap-2.5 transition-all';
+        editToggleLabel.textContent = 'Edit Medicines: OFF';
+      }
+
+      // Update Adherence Progress Bar
+      document.getElementById('senior-progress-label').textContent = `${takenCount} of ${totalCount} Taken (${pct}%)`;
+      document.getElementById('senior-progress-fill').style.width = `${pct}%`;
+      document.getElementById('senior-progress-bar-wrap').setAttribute('aria-valuenow', pct);
+      document.getElementById('senior-progress-subtext').textContent =
+        pct === 100
+          ? 'Excellent work! All medicines for today have been taken.'
+          : `${totalCount - takenCount} ${totalCount - takenCount === 1 ? 'dose' : 'doses'} remaining today.`;
+
+      // Render Next Upcoming Dose Card
+      const nextDoseCard = document.getElementById('next-dose-card');
+      const nextMed = sortedMeds.find((m) => !m.taken);
+
+      if (nextMed) {
+        const isLowStock = nextMed.stock <= (nextMed.lowStockThreshold ?? 5);
+        nextDoseCard.className =
+          'lg:col-span-5 bg-[#1D4ED8] text-white rounded-3xl p-6 shadow-md flex flex-col justify-between space-y-4';
+        nextDoseCard.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-white/15 text-white uppercase tracking-wider">
+              Next Upcoming Dose
+            </span>
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-extrabold text-blue-100">${formatTime12Hour(nextMed.time)}</span>
+              <button
+                onclick="openMedEditorModal('${nextMed.id}')"
+                class="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white"
+                title="Edit this medicine"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-2xl sm:text-3xl font-extrabold leading-tight">${escapeHtml(nextMed.name)}</h3>
+            <p class="text-blue-100 text-base sm:text-lg font-semibold mt-1">
+              ${escapeHtml(nextMed.dosage)} • ${escapeHtml(nextMed.instruction)}
+            </p>
+            ${
+              isLowStock
+                ? `<div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#D97706] text-white text-xs font-extrabold">
+                    Low Stock Warning: Only ${nextMed.stock} pills left
+                  </div>`
+                : ''
+            }
+          </div>
+
+          <button
+            onclick="toggleMedicationTaken('${nextMed.id}')"
+            class="w-full min-h-[56px] px-5 py-3.5 rounded-2xl bg-[#059669] hover:bg-emerald-500 active:scale-[0.99] text-white font-extrabold text-lg shadow-lg flex items-center justify-center gap-2.5 transition-all"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            <span>I Took It Now</span>
+          </button>
+        `;
+      } else {
+        nextDoseCard.className =
+          'lg:col-span-5 bg-[#059669] text-white rounded-3xl p-6 shadow-md flex flex-col justify-between space-y-4';
+        nextDoseCard.innerHTML = `
+          <div>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-white/20 text-white uppercase tracking-wider">
+              All Caught Up
+            </span>
+            <h3 class="text-2xl sm:text-3xl font-extrabold mt-3">100% Completed Today!</h3>
+            <p class="text-emerald-100 text-base font-medium mt-1.5">
+              ${escapeHtml(p.patientName)} has completed all ${totalCount} prescribed doses for today.
+            </p>
+          </div>
+          <div class="bg-white/15 rounded-2xl p-3.5 text-sm font-bold flex items-center gap-2">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Caregiver ${escapeHtml(appState.contacts.caregiverName)} can view the log.</span>
+          </div>
+        `;
+      }
+
+      // Render Medications Grouped by Morning, Afternoon, Evening, Night
+      const slots = [
+        {
+          key: 'Morning',
+          title: 'Morning Medicines',
+          subtitle: 'Breakfast & Early Day Doses',
+          iconBg: 'bg-amber-100 text-[#D97706]',
+          iconSvg: `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>`
+        },
+        {
+          key: 'Afternoon',
+          title: 'Afternoon Medicines',
+          subtitle: 'Midday & Post-Lunch Doses',
+          iconBg: 'bg-blue-100 text-[#1D4ED8]',
+          iconSvg: `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" /></svg>`
+        },
+        {
+          key: 'Evening',
+          title: 'Evening Medicines',
+          subtitle: 'Early Evening & Tea-Time Doses',
+          iconBg: 'bg-orange-100 text-orange-700',
+          iconSvg: `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-15 0H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>`
+        },
+        {
+          key: 'Night',
+          title: 'Night Medicines',
+          subtitle: 'Dinner & Bedtime Doses',
+          iconBg: 'bg-indigo-100 text-indigo-700',
+          iconSvg: `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>`
+        }
+      ];
+
+      const scheduleContainer = document.getElementById('senior-schedule-container');
+      scheduleContainer.innerHTML = slots
+        .map((slot) => {
+          const medsInSlot = sortedMeds.filter((m) => m.timeSlot === slot.key);
+          if (medsInSlot.length === 0) return '';
+
+          const cardsHtml = medsInSlot
+            .map((med) => {
+              const isLowStock = med.stock <= (med.lowStockThreshold ?? 5);
+              const colorObj = PILL_COLOR_STYLES[med.pillColor] || PILL_COLOR_STYLES.blue;
+              const cardBorder = med.taken
+                ? 'bg-[#ECFDF5]/80 border-emerald-300'
+                : 'bg-white border-slate-200';
+
+              return `
+                <div class="rounded-3xl p-5 sm:p-6 border-2 ${cardBorder} shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
+                  <div class="space-y-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="px-3 py-1 rounded-xl bg-slate-900 text-white text-sm font-extrabold tracking-wide">
+                        ${formatTime12Hour(med.time)}
+                      </span>
+                      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border text-sm font-bold ${colorObj.badge}">
+                        <span class="w-2.5 h-2.5 rounded-full ${colorObj.dot}"></span>
+                        ${escapeHtml(med.instruction)}
+                      </span>
+                      ${
+                        isLowStock
+                          ? `<span class="px-3 py-1 rounded-xl bg-amber-100 text-[#D97706] border border-amber-300 text-xs sm:text-sm font-extrabold">
+                              Low Stock: ${med.stock} pills left
+                            </span>`
+                          : `<span class="px-3 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs sm:text-sm font-semibold">
+                              ${med.stock} pills left
+                            </span>`
+                      }
+                    </div>
+
+                    <h4 class="text-xl sm:text-2xl font-extrabold text-slate-900">
+                      ${escapeHtml(med.name)}
+                    </h4>
+
+                    <p class="text-base font-semibold text-slate-600">
+                      Dosage: <strong class="text-slate-900">${escapeHtml(med.dosage)}</strong>
+                      ${
+                        med.taken && med.takenAt
+                          ? ` • <span class="text-[#059669] font-extrabold">Taken at ${escapeHtml(med.takenAt)}</span>`
+                          : ''
+                      }
+                    </p>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                    ${
+                      appState.seniorEditMode
+                        ? `<button
+                            onclick="openMedEditorModal('${med.id}')"
+                            class="px-4 py-3.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-[#1D4ED8] border-2 border-[#1D4ED8] font-bold text-sm sm:text-base flex items-center gap-1.5"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+                            </svg>
+                            <span>Edit</span>
+                          </button>`
+                        : ''
+                    }
+
+                    ${
+                      med.taken
+                        ? `
+                          <div class="px-4 py-3.5 rounded-2xl bg-[#059669] text-white font-extrabold text-base sm:text-lg flex items-center gap-2 shadow-sm">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                            <span>Taken</span>
+                          </div>
+                          <button
+                            onclick="toggleMedicationTaken('${med.id}')"
+                            class="px-4 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 border-2 border-slate-300 font-bold text-sm sm:text-base transition-all"
+                          >
+                            Undo
+                          </button>
+                        `
+                        : `
+                          <button
+                            onclick="toggleMedicationTaken('${med.id}')"
+                            class="w-full sm:w-auto min-h-[58px] px-7 py-4 rounded-2xl bg-[#059669] hover:bg-emerald-700 active:scale-[0.98] text-white font-extrabold text-lg shadow-md flex items-center justify-center gap-2.5 transition-all"
+                          >
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                            <span>I Took It</span>
+                          </button>
+                        `
+                    }
+                  </div>
+                </div>
+              `;
+            })
+            .join('');
+
+          return `
+            <div class="space-y-3">
+              <div class="flex items-center gap-3 px-1">
+                <div class="w-10 h-10 rounded-2xl ${slot.iconBg} flex items-center justify-center shrink-0">
+                  ${slot.iconSvg}
+                </div>
+                <div>
+                  <h3 class="text-xl font-extrabold text-slate-900">${slot.title}</h3>
+                  <p class="text-xs sm:text-sm font-medium text-slate-500">${slot.subtitle}</p>
+                </div>
+              </div>
+              <div class="space-y-3">
+                ${cardsHtml}
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      // Add Medicine quick button when Senior Edit Mode is enabled
+      if (appState.seniorEditMode) {
+        scheduleContainer.innerHTML += `
+          <div class="pt-1">
+            <button
+              onclick="openMedEditorModal(null)"
+              class="w-full py-4 rounded-2xl border-2 border-dashed border-[#1D4ED8] bg-blue-50/70 hover:bg-blue-100 text-[#1D4ED8] font-extrabold text-base flex items-center justify-center gap-2"
+            >
+              <span>+ Add New Medicine Directly</span>
+            </button>
+          </div>
+        `;
+      }
+
+      // Update Latest Vitals Badge
+      const latestVital = appState.vitalsHistory[0];
+      const latestBadgeEl = document.getElementById('latest-vital-summary-badge');
+      if (latestVital && latestBadgeEl) {
+        const range = classifyVitals(latestVital.systolic, latestVital.diastolic, latestVital.sugar);
+        latestBadgeEl.innerHTML = `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${range.badgeClass}">
+            Last: ${latestVital.systolic}/${latestVital.diastolic} mmHg • ${latestVital.sugar} mg/dL (${range.label})
+          </span>
+        `;
+      } else if (latestBadgeEl) {
+        latestBadgeEl.innerHTML = '';
+      }
+    }
+
+    function renderCaregiverView() {
+      const p = appState.profile;
+      const c = appState.contacts;
+      const sortedMeds = getSortedMedications();
+      const totalCount = sortedMeds.length;
+      const takenCount = sortedMeds.filter((m) => m.taken).length;
+      const todayPct = totalCount === 0 ? 100 : Math.round((takenCount / totalCount) * 100);
+      const lowStockCount = sortedMeds.filter((m) => m.stock <= (m.lowStockThreshold ?? 5)).length;
+
+      // Update Patient & Caregiver Overview Header
+      document.getElementById('cg-caregiver-tag').textContent =
+        `CAREGIVER: ${c.caregiverName.toUpperCase()} (${c.caregiverRelation.toUpperCase()})`;
+      document.getElementById('cg-patient-heading').textContent = p.patientName;
+      document.getElementById('cg-patient-subinfo').textContent =
+        `${p.age} • Blood: ${p.bloodGroup} • Allergy: ${p.allergies}`;
+
+      document.getElementById('cg-adherence-pct').textContent = `${todayPct}%`;
+      document.getElementById('cg-adherence-count').textContent = `${takenCount} of ${totalCount} doses`;
+      document.getElementById('cg-low-stock-count').textContent = `${lowStockCount}`;
+      document.getElementById('cg-pharmacy-subtitle').textContent =
+        `Connected Pharmacy: ${c.pharmacyName} (${c.pharmacyWhatsApp}) • Adjust stock inline or send refill order.`;
+
+      // Render 7-Day Adherence Bar Chart (Clickable bars open editor)
+      const weekData = [...appState.weeklyAdherence, { day: 'Today', pct: todayPct }];
+      const weeklyAvg = Math.round(weekData.reduce((acc, d) => acc + d.pct, 0) / weekData.length);
+      document.getElementById('cg-weekly-avg').textContent = `7-Day Avg: ${weeklyAvg}%`;
+
+      const chartContainer = document.getElementById('weekly-chart-container');
+      chartContainer.innerHTML = weekData
+        .map((item) => {
+          const isToday = item.day === 'Today';
+          const barColor = isToday
+            ? 'bg-[#1D4ED8]'
+            : item.pct >= 80
+            ? 'bg-[#059669]'
+            : 'bg-[#D97706]';
+          const heightPx = Math.max(14, Math.round((item.pct / 100) * 115));
+
+          return `
+            <div
+              ${!isToday ? 'onclick="openWeeklyEditorModal()"' : ''}
+              class="flex-1 flex flex-col items-center justify-end gap-1.5 ${!isToday ? 'cursor-pointer group' : ''}"
+              title="${isToday ? 'Live today score' : 'Click to edit past day percentage'}"
+            >
+              <span class="text-xs font-extrabold ${isToday ? 'text-[#1D4ED8]' : 'text-slate-700 group-hover:text-[#1D4ED8]'}">
+                ${item.pct}%
+              </span>
+              <div
+                class="w-full max-w-[42px] rounded-t-xl ${barColor} group-hover:opacity-85 transition-all duration-500 shadow-sm"
+                style="height: ${heightPx}px"
+              ></div>
+              <span class="text-xs font-bold ${isToday ? 'text-[#1D4ED8] underline' : 'text-slate-500'} pb-1">
+                ${escapeHtml(item.day)}
+              </span>
+            </div>
+          `;
+        })
+        .join('');
+
+      // Render Doctor & Caregiver Instructions Board
+      const notesGrid = document.getElementById('cg-notes-grid');
+      if (appState.caregiverNotes.length === 0) {
+        notesGrid.innerHTML = `<p class="col-span-full text-sm text-slate-500 py-3">No instruction notes yet. Click "+ Add Instruction Note" to pin a care rule.</p>`;
+      } else {
+        notesGrid.innerHTML = appState.caregiverNotes
+          .map((n) => {
+            const isImportant = n.priority === 'important';
+            return `
+              <div class="rounded-2xl p-4 border-2 ${
+                isImportant ? 'bg-amber-50/80 border-amber-300' : 'bg-slate-50 border-slate-200'
+              } flex flex-col justify-between space-y-3">
+                <div class="space-y-1.5">
+                  <div class="flex items-start justify-between gap-2">
+                    <h4 class="font-extrabold text-base text-slate-900">${escapeHtml(n.title)}</h4>
+                    ${
+                      isImportant
+                        ? `<span class="px-2 py-0.5 rounded-md bg-[#D97706] text-white text-[10px] font-extrabold uppercase shrink-0">Priority</span>`
+                        : ''
+                    }
+                  </div>
+                  <p class="text-sm text-slate-700 leading-relaxed">${escapeHtml(n.content)}</p>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-200/80 text-xs">
+                  <span class="font-semibold text-slate-500">${escapeHtml(n.author)} • ${escapeHtml(n.updatedAt)}</span>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      onclick="openNoteEditorModal('${n.id}')"
+                      class="px-2.5 py-1 rounded-lg bg-white hover:bg-blue-50 text-[#1D4ED8] border border-slate-300 font-bold"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onclick="deleteCaregiverNote('${n.id}')"
+                      class="px-2 py-1 rounded-lg bg-white hover:bg-red-50 text-[#DC2626] border border-slate-300 font-bold"
+                    >
+                      Del
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      // Render Prescription Manager List (with Edit, Duplicate, Delete)
+      const rxList = document.getElementById('cg-prescription-list');
+      if (sortedMeds.length === 0) {
+        rxList.innerHTML = `<p class="py-6 text-center text-slate-500 font-medium">No prescriptions scheduled. Click "+ Add New Prescription" to begin.</p>`;
+      } else {
+        rxList.innerHTML = sortedMeds
+          .map((med) => {
+            const colorObj = PILL_COLOR_STYLES[med.pillColor] || PILL_COLOR_STYLES.blue;
+            return `
+              <div class="py-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="space-y-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="w-3 h-3 rounded-full ${colorObj.dot}"></span>
+                    <span class="font-extrabold text-base sm:text-lg text-slate-900">${escapeHtml(med.name)}</span>
+                    <span class="px-2.5 py-0.5 rounded-lg bg-blue-50 text-[#1D4ED8] text-xs font-bold">
+                      ${med.timeSlot} • ${formatTime12Hour(med.time)}
+                    </span>
+                    <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold ${
+                      med.taken ? 'bg-emerald-100 text-[#059669]' : 'bg-slate-100 text-slate-600'
+                    }">
+                      ${med.taken ? `Taken (${med.takenAt})` : 'Pending'}
+                    </span>
+                  </div>
+                  <p class="text-sm text-slate-600">
+                    ${escapeHtml(med.dosage)} • ${escapeHtml(med.instruction)} • Alert below ${med.lowStockThreshold ?? 5} pills
+                  </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <button
+                    onclick="openMedEditorModal('${med.id}')"
+                    class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1D4ED8] border border-blue-200 text-xs sm:text-sm font-bold flex items-center gap-1.5"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+                    </svg>
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    onclick="duplicateMedication('${med.id}')"
+                    class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold"
+                    title="Duplicate prescription"
+                  >
+                    Copy
+                  </button>
+
+                  <button
+                    onclick="confirmDeleteMedication('${med.id}')"
+                    class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-[#DC2626] border border-red-200 text-xs sm:text-sm font-bold"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      // Render Pharmacy Inventory & Refill Manager (with inline -1, +1, +30 Refill)
+      const invGrid = document.getElementById('cg-inventory-grid');
+      invGrid.innerHTML = sortedMeds
+        .map((med) => {
+          const threshold = med.lowStockThreshold ?? 5;
+          const isLow = med.stock <= threshold;
+          return `
+            <div class="rounded-2xl p-4 border-2 ${
+              isLow ? 'bg-[#FFFBEB] border-[#D97706]' : 'bg-slate-50 border-slate-200'
+            } flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="font-extrabold text-base text-slate-900">${escapeHtml(med.name)}</h4>
+                  ${
+                    isLow
+                      ? `<span class="px-2 py-0.5 rounded-md bg-[#D97706] text-white text-xs font-extrabold uppercase">Low (&le;${threshold})</span>`
+                      : ''
+                  }
+                </div>
+                <p class="text-sm font-semibold ${isLow ? 'text-[#D97706]' : 'text-slate-600'} mt-1">
+                  Remaining: <strong>${med.stock} pills</strong> (${med.dosage})
+                </p>
+              </div>
+
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button
+                  onclick="adjustMedicationStock('${med.id}', -1)"
+                  class="w-9 h-9 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-extrabold text-base"
+                  title="Decrease stock by 1"
+                >
+                  -1
+                </button>
+                <button
+                  onclick="adjustMedicationStock('${med.id}', 1)"
+                  class="w-9 h-9 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-extrabold text-base"
+                  title="Increase stock by 1"
+                >
+                  +1
+                </button>
+                <button
+                  onclick="adjustMedicationStock('${med.id}', 30)"
+                  class="px-3.5 h-9 rounded-xl bg-white hover:bg-emerald-50 text-[#059669] border-2 border-[#059669] font-extrabold text-xs sm:text-sm shadow-sm transition-all"
+                >
+                  +30 Refill
+                </button>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      // Render Editable Daily Dose Audit Log
+      const auditContainer = document.getElementById('cg-audit-log');
+      if (appState.auditLog.length === 0) {
+        auditContainer.innerHTML = `<p class="text-sm text-slate-500">No events logged yet today.</p>`;
+      } else {
+        auditContainer.innerHTML = appState.auditLog
+          .map((entry) => {
+            const badgeStyle =
+              entry.action === 'Taken' || entry.action === 'Refill'
+                ? 'bg-emerald-100 text-[#059669]'
+                : entry.action === 'Undo'
+                ? 'bg-amber-100 text-[#D97706]'
+                : 'bg-blue-100 text-[#1D4ED8]';
+
+            return `
+              <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-2">
+                <div class="space-y-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-block px-2 py-0.5 rounded-md text-xs font-extrabold ${badgeStyle}">
+                      ${escapeHtml(entry.action)}
+                    </span>
+                    <span class="text-xs font-bold text-slate-500">${escapeHtml(entry.timestamp)}</span>
+                  </div>
+                  <p class="text-sm font-semibold text-slate-800">${escapeHtml(entry.detail)}</p>
+                  ${
+                    entry.note
+                      ? `<p class="text-xs text-slate-500 italic">Note: ${escapeHtml(entry.note)}</p>`
+                      : ''
+                  }
+                </div>
+
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    onclick="openAuditEditorModal('${entry.id}')"
+                    class="px-2.5 py-1 rounded-lg bg-white hover:bg-blue-50 text-[#1D4ED8] border border-slate-300 text-xs font-bold"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onclick="deleteAuditEntry('${entry.id}')"
+                    class="px-2 py-1 rounded-lg bg-white hover:bg-red-50 text-[#DC2626] border border-slate-300 text-xs font-bold"
+                  >
+                    Del
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      // Render Editable Vitals History Log
+      const vitalsContainer = document.getElementById('cg-vitals-log');
+      if (appState.vitalsHistory.length === 0) {
+        vitalsContainer.innerHTML = `<p class="text-sm text-slate-500">No vitals recorded yet.</p>`;
+      } else {
+        vitalsContainer.innerHTML = appState.vitalsHistory
+          .map((v) => {
+            const range = classifyVitals(v.systolic, v.diastolic, v.sugar);
+            return `
+              <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div class="space-y-0.5">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm sm:text-base font-extrabold text-slate-900">
+                      BP: ${v.systolic}/${v.diastolic} • Sugar: ${v.sugar}
+                      ${v.pulse ? `• Pulse: ${v.pulse}` : ''}
+                    </span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${range.badgeClass}">
+                      ${escapeHtml(range.label)}
+                    </span>
+                  </div>
+                  <div class="text-xs font-semibold text-slate-500">${escapeHtml(v.timestamp)}</div>
+                  ${v.note ? `<div class="text-xs text-slate-600 italic">${escapeHtml(v.note)}</div>` : ''}
+                </div>
+
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    onclick="openVitalsEditorModal('${v.id}')"
+                    class="px-2.5 py-1 rounded-lg bg-white hover:bg-blue-50 text-[#1D4ED8] border border-slate-300 text-xs font-bold"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onclick="deleteVitalEntry('${v.id}')"
+                    class="px-2 py-1 rounded-lg bg-white hover:bg-red-50 text-[#DC2626] border border-slate-300 text-xs font-bold"
+                  >
+                    Del
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+    }
+
+    // ==================== MODAL, TOAST & ESCAPE HELPERS ====================
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    function openConfirmModal(title, message, onConfirmCallback) {
+      document.getElementById('confirm-modal-title').textContent = title;
+      document.getElementById('confirm-modal-message').textContent = message;
+      const actionBtn = document.getElementById('confirm-modal-action-btn');
+
+      const newBtn = actionBtn.cloneNode(true);
+      actionBtn.parentNode.replaceChild(newBtn, actionBtn);
+      newBtn.addEventListener('click', () => {
+        closeModal('confirm-modal');
+        onConfirmCallback();
+      });
+
+      openModal('confirm-modal');
+    }
+
+    let toastTimer = null;
+    function showToast(message, variant = 'emerald') {
+      const banner = document.getElementById('toast-banner');
+      const msgEl = document.getElementById('toast-message');
+      const iconEl = document.getElementById('toast-icon');
+
+      msgEl.textContent = message;
+      iconEl.className =
+        variant === 'amber'
+          ? 'w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0'
+          : variant === 'blue'
+          ? 'w-2.5 h-2.5 rounded-full bg-blue-400 shrink-0'
+          : 'w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0';
+
+      banner.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        banner.classList.add('hidden');
+      }, 3400);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ==================== INITIALIZATION ON WINDOW LOAD ====================
+    window.onload = function () {
+      initPWAMetadata();
+      updateLiveClock();
+      setInterval(updateLiveClock, 1000);
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = populateVoiceDropdown;
+      }
+
+      switchMode(appState.activeMode || 'senior');
+    };
+  </script>
+</body>
+</html>
